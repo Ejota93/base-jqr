@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jQuery Reactive State Library - Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .demo-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .demo-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .demo-card h3 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .demo-section {
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .input-group {
+            margin: 10px 0;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .state-display {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .reactive-element {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .highlight {
+            background: linear-gradient(45deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .task-item {
+            background: #f0f4f8;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .task-item button {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .color-box {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            margin: 10px auto;
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .counter-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4a5568;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background: #48bb78; }
+        .status-offline { background: #e53e3e; }
+        .status-away { background: #ed8936; }
+        
+        .console-output {
+            background: #1a202c;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        
+        .console-line {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .console-info { color: #63b3ed; }
+        .console-warn { color: #f6ad55; }
+        .console-error { color: #fc8181; }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>jQuery Reactive State Library</h1>
+            <p>Biblioteca de estados reactivos con API imperativa al estilo jQuery</p>
+        </div>
+        
+        <div class="demo-grid">
+            <!-- Demo 1: Contador Simple -->
+            <div class="demo-card">
+                <h3>🎯 Contador Simple</h3>
+                <div class="demo-section">
+                    <div class="counter-display" st-text="contador">0</div>
+                    <div style="text-align: center;">
+                        <button class="btn" onclick="$.state('contador', $.state('contador') - 1)">➖ Decrementar</button>
+                        <button class="btn" onclick="$.state('contador', $.state('contador') + 1)">➕ Incrementar</button>
+                        <button class="btn" onclick="$.state('contador', 0)">🔄 Reset</button>
+                    </div>
+                </div>
+                <div class="state-display">
+                    Estado actual: <span id="contador-estado">0</span>
+                </div>
+            </div>
+            
+            <!-- Demo 2: Formulario Reactivo -->
+            <div class="demo-card">
+                <h3>📝 Formulario Reactivo</h3>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <input type="text" st-value="nombre" placeholder="Ingresa tu nombre">
+                    </div>
+                    <div class="input-group">
+                        <input type="email" st-value="email" placeholder="Ingresa tu email">
+                    </div>
+                    <div class="input-group">
+                        <input type="number" st-value="edad" placeholder="Ingresa tu edad">
+                    </div>
+                </div>
+                <div class="reactive-element highlight">
+                    <p><strong>Hola</strong> <span st-text="nombre">Invitado</span>!</p>
+                    <p><strong>Email:</strong> <span st-text="email">No proporcionado</span></p>
+                    <p><strong>Edad:</strong> <span st-text="edad">No especificada</span> años</p>
+                </div>
+            </div>
+            
+            <!-- Demo 3: Lista de Tareas -->
+            <div class="demo-card">
+                <h3>📋 Lista de Tareas</h3>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <input type="text" id="nuevaTarea" placeholder="Nueva tarea...">
+                    </div>
+                    <button class="btn" onclick="agregarTarea()">➕ Agregar Tarea</button>
+                    <div style="margin: 15px 0;">
+                        <div st-html="tareasHtml"></div>
+                    </div>
+                    <div class="state-display">
+                        Total de tareas: <span st-text="totalTareas">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Demo 4: Toggle y Visibilidad -->
+            <div class="demo-card">
+                <h3>👁️ Toggle y Visibilidad</h3>
+                <div class="demo-section">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button class="btn" onclick="$.state('visible', !$.state('visible'))">
+                            🔄 Toggle Elemento
+                        </button>
+                        <button class="btn" onclick="$.state('modoOscuro', !$.state('modoOscuro'))">
+                            🌙 Toggle Modo Oscuro
+                        </button>
+                    </div>
+                    <div st-show="visible" class="reactive-element" st-class="claseTema">
+                        <p st-text="mensajeVisible">Este elemento aparece/desaparece!</p>
+                        <p>Estado: <span st-text="estadoVisible">Visible</span></p>
+                    </div>
+                    <div st-hide="visible" class="reactive-element">
+                        <p>🔍 El elemento está oculto</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Demo 5: Cambio de Colores -->
+            <div class="demo-card">
+                <h3>🎨 Cambio de Colores</h3>
+                <div class="demo-section">
+                    <div style="text-align: center;">
+                        <button class="btn" onclick="cambiarColor('rojo')">🔴 Rojo</button>
+                        <button class="btn" onclick="cambiarColor('azul')">🔵 Azul</button>
+                        <button class="btn" onclick="cambiarColor('verde')">🟢 Verde</button>
+                        <button class="btn" onclick="cambiarColor('aleatorio')">🌈 Aleatorio</button>
+                    </div>
+                    <div class="color-box" st-css-background-color="colorFondo"></div>
+                    <div class="state-display">
+                        Color actual: <span st-text="colorNombre">No seleccionado</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Demo 6: Estado de Conexión -->
+            <div class="demo-card">
+                <h3>🌐 Estado de Conexión</h3>
+                <div class="demo-section">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button class="btn" onclick="$.state('estadoConexion', 'online')">🟢 Online</button>
+                        <button class="btn" onclick="$.state('estadoConexion', 'offline')">🔴 Offline</button>
+                        <button class="btn" onclick="$.state('estadoConexion', 'away')">🟡 Away</button>
+                    </div>
+                    <div class="reactive-element">
+                        <p>
+                            <span st-html="indicadorEstado"></span>
+                            <span st-text="textoEstado">Estado: Desconocido</span>
+                        </p>
+                        <p st-show="conectado" st-text="mensajeConexion">Conectado a internet</p>
+                        <p st-hide="conectado" st-text="mensajeDesconexion">Sin conexión a internet</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Demo 7: Validación en Tiempo Real -->
+            <div class="demo-card">
+                <h3>✅ Validación en Tiempo Real</h3>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <input type="password" id="password" st-value="password" placeholder="Contraseña">
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="confirmPassword" st-value="confirmPassword" placeholder="Confirmar contraseña">
+                    </div>
+                    <div class="state-display">
+                        <div st-html="validacionHtml"></div>
+                    </div>
+                    <div st-show="passwordsCoinciden" class="reactive-element" style="background: #c6f6d5; color: #22543d;">
+                        <p>✅ Las contraseñas coinciden</p>
+                    </div>
+                    <div st-hide="passwordsCoinciden" class="reactive-element" style="background: #fed7d7; color: #742a2a;">
+                        <p>❌ Las contraseñas no coinciden</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Demo 8: Consola de Depuración -->
+            <div class="demo-card">
+                <h3>🔧 Consola de Depuración</h3>
+                <div class="demo-section">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button class="btn" onclick="$.reactiveConfig({debug: !$.ReactiveState.config.debug})">
+                            🐛 Toggle Debug
+                        </button>
+                        <button class="btn" onclick="limpiarConsola()">🗑️ Limpiar</button>
+                        <button class="btn" onclick="mostrarEstadoCompleto()">📊 Estado Completo</button>
+                    </div>
+                    <div class="state-display">
+                        Debug: <span st-text="debugStatus">Desactivado</span>
+                    </div>
+                    <div class="console-output" id="consolaDebug">
+                        <div class="console-line console-info">Consola de depuración iniciada</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>jQuery Reactive State Library - Demo Interactivo</p>
+            <p>Haz clic en los botones y observa cómo el estado se actualiza en tiempo real</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="src/polyfills.js"></script>
+    <script src="src/jquery.reactive.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Inicializar estado global
+            $.reactiveInit({
+                // Contador
+                contador: 0,
+                
+                // Formulario
+                nombre: '',
+                email: '',
+                edad: '',
+                
+                // Lista de tareas
+                tareas: [],
+                tareasHtml: '',
+                totalTareas: 0,
+                
+                // Toggle y visibilidad
+                visible: true,
+                modoOscuro: false,
+                mensajeVisible: 'Este elemento aparece/desaparece!',
+                estadoVisible: 'Visible',
+                claseTema: 'highlight',
+                
+                // Colores
+                colorFondo: '#e2e8f0',
+                colorNombre: 'Gris por defecto',
+                
+                // Conexión
+                estadoConexion: 'online',
+                indicadorEstado: '<span class="status-indicator status-online"></span>',
+                textoEstado: 'Estado: Online',
+                conectado: true,
+                mensajeConexion: 'Conectado a internet',
+                mensajeDesconexion: 'Sin conexión a internet',
+                
+                // Validación
+                password: '',
+                confirmPassword: '',
+                passwordsCoinciden: false,
+                validacionHtml: '<p>🔍 Ingresa una contraseña</p>',
+                
+                // Debug
+                debugStatus: 'Desactivado'
+            });
+            
+            // Observadores de estado
+            setupWatchers();
+            
+            // Eventos iniciales
+            agregarMensajeConsola('Sistema iniciado correctamente', 'info');
+        });
+        
+        // Funciones de utilidad
+        function agregarTarea() {
+            const tarea = $('#nuevaTarea').val().trim();
+            if (tarea) {
+                const tareas = $.state('tareas');
+                tareas.push({
+                    id: Date.now(),
+                    texto: tarea,
+                    completada: false
+                });
+                
+                actualizarListaTareas();
+                $('#nuevaTarea').val('');
+                agregarMensajeConsola(`Tarea agregada: "${tarea}"`, 'info');
+            }
+        }
+        
+        function actualizarListaTareas() {
+            const tareas = $.state('tareas');
+            const html = tareas.map(tarea => `
+                <div class="task-item slide-in">
+                    <span>${tarea.texto}</span>
+                    <button onclick="eliminarTarea(${tarea.id})">❌</button>
+                </div>
+            `).join('');
+            
+            $.state({
+                tareasHtml: html || '<p style="text-align: center; color: #718096;">No hay tareas</p>',
+                totalTareas: tareas.length
+            });
+        }
+        
+        function eliminarTarea(id) {
+            const tareas = $.state('tareas');
+            const tarea = tareas.find(t => t.id === id);
+            const nuevasTareas = tareas.filter(t => t.id !== id);
+            
+            $.state('tareas', nuevasTareas);
+            actualizarListaTareas();
+            agregarMensajeConsola(`Tarea eliminada: "${tarea.texto}"`, 'warn');
+        }
+        
+        function cambiarColor(color) {
+            const colores = {
+                rojo: '#fc8181',
+                azul: '#63b3ed',
+                verde: '#68d391',
+                aleatorio: `#${Math.floor(Math.random()*16777215).toString(16)}`
+            };
+            
+            const colorHex = colores[color] || colores.aleatorio;
+            const nombreColor = color.charAt(0).toUpperCase() + color.slice(1);
+            
+            $.state({
+                colorFondo: colorHex,
+                colorNombre: nombreColor === 'Aleatorio' ? `Aleatorio: ${colorHex}` : nombreColor
+            });
+            
+            agregarMensajeConsola(`Color cambiado a: ${nombreColor}`, 'info');
+        }
+        
+        function limpiarConsola() {
+            $('#consolaDebug').html('<div class="console-line console-info">Consola limpiada</div>');
+        }
+        
+        function mostrarEstadoCompleto() {
+            const estado = $.state();
+            agregarMensajeConsola('Estado completo:', 'info');
+            agregarMensajeConsola(JSON.stringify(estado, null, 2), 'info');
+        }
+        
+        function agregarMensajeConsola(mensaje, tipo = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const clase = `console-${tipo}`;
+            const linea = `<div class="console-line ${clase}">[${timestamp}] ${mensaje}</div>`;
+            
+            $('#consolaDebug').append(linea);
+            $('#consolaDebug').scrollTop($('#consolaDebug')[0].scrollHeight);
+        }
+        
+        // Setup watchers
+        function setupWatchers() {
+            // Watcher para el contador
+            $.watch('contador', function(nuevo, anterior) {
+                $('#contador-estado').text(nuevo);
+                if ($.ReactiveState.config.debug) {
+                    agregarMensajeConsola(`Contador: ${anterior} → ${nuevo}`, 'info');
+                }
+            });
+            
+            // Watcher para modo oscuro
+            $.watch('modoOscuro', function(activo) {
+                const clase = activo ? 'reactive-element' : 'reactive-element highlight';
+                $.state('claseTema', clase);
+            });
+            
+            // Watcher para visibilidad
+            $.watch('visible', function(visible) {
+                $.state({
+                    mensajeVisible: visible ? 'Este elemento aparece/desaparece!' : 'Elemento oculto',
+                    estadoVisible: visible ? 'Visible' : 'Oculto'
+                });
+            });
+            
+            // Watcher para estado de conexión
+            $.watch('estadoConexion', function(estado) {
+                const estados = {
+                    online: {
+                        indicador: '<span class="status-indicator status-online"></span>',
+                        texto: 'Estado: Online',
+                        conectado: true
+                    },
+                    offline: {
+                        indicador: '<span class="status-indicator status-offline"></span>',
+                        texto: 'Estado: Offline',
+                        conectado: false
+                    },
+                    away: {
+                        indicador: '<span class="status-indicator status-away"></span>',
+                        texto: 'Estado: Away',
+                        conectado: true
+                    }
+                };
+                
+                const config = estados[estado] || estados.online;
+                $.state({
+                    indicadorEstado: config.indicador,
+                    textoEstado: config.texto,
+                    conectado: config.conectado
+                });
+            });
+            
+            // Watcher para validación de contraseñas
+            $.watch('password', validarPasswords);
+            $.watch('confirmPassword', validarPasswords);
+            
+            // Watcher para debug
+            $.watch(function(key, nuevo, anterior) {
+                if (key === 'debug' && $.ReactiveState.config.debug) {
+                    agregarMensajeConsola(`Debug: ${key} cambió de ${anterior} a ${nuevo}`, 'info');
+                }
+            });
+            
+            // Watcher específico para debug status
+            $.watch('debug', function(activo) {
+                $.state('debugStatus', activo ? 'Activado' : 'Desactivado');
+                agregarMensajeConsola(`Modo debug ${activo ? 'activado' : 'desactivado'}`, 'info');
+            });
+        }
+        
+        function validarPasswords() {
+            const password = $.state('password');
+            const confirmPassword = $.state('confirmPassword');
+            
+            if (!password && !confirmPassword) {
+                $.state({
+                    passwordsCoinciden: false,
+                    validacionHtml: '<p>🔍 Ingresa una contraseña</p>'
+                });
+                return;
+            }
+            
+            if (password.length < 6) {
+                $.state({
+                    passwordsCoinciden: false,
+                    validacionHtml: '<p>⚠️ La contraseña debe tener al menos 6 caracteres</p>'
+                });
+                return;
+            }
+            
+            const coinciden = password === confirmPassword && password.length > 0;
+            const html = coinciden 
+                ? '<p>✅ Las contraseñas coinciden y son válidas</p>'
+                : '<p>❌ Las contraseñas no coinciden</p>';
+            
+            $.state({
+                passwordsCoinciden: coinciden,
+                validacionHtml: html
+            });
+        }
+        
+        // Event listeners adicionales
+        $(document).on('state:changed', function(event, nuevoValor, key) {
+            if ($.ReactiveState.config.debug && key !== 'debug') {
+                agregarMensajeConsola(`Estado actualizado: ${key} = ${nuevoValor}`, 'info');
+            }
+        });
+        
+        // Manejo de teclas
+        $('#nuevaTarea').on('keypress', function(e) {
+            if (e.which === 13) {
+                agregarTarea();
+            }
+        });
+        
+        // Auto-focus en el primer input
+        $('input[type="text"]:first').focus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jQuery Reactive - Demo Sintaxis Pura</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 42px;
+            margin-bottom: 50px;
+        }
+        
+        .demo-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            max-width: 1100px;
+            margin: 0 auto;
+            min-height: 360px;
+        }
+        
+        .demo-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .demo-card h3 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .input-group {
+            margin: 10px 0;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .state-display {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .reactive-element {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .highlight {
+            background: linear-gradient(45deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .task-item {
+            background: #f0f4f8;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .task-item button {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .color-box {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            margin: 10px auto;
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .counter-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4a5568;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online { background: #48bb78; }
+        .status-offline { background: #e53e3e; }
+        .status-away { background: #ed8936; }
+        
+        .console-output {
+            background: #1a202c;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        
+        .console-line {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .console-info { color: #63b3ed; }
+        .console-warn { color: #f6ad55; }
+        .console-error { color: #fc8181; }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .code-example {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 18px 20px;
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 12px 0;
+            overflow-x: auto;
+            border: 1px solid #374151;
+            position: relative;
+        }
+        .code-example pre {
+            white-space: pre-wrap;
+        }
+        .code-example .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #374151;
+            color: #e5e7eb;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .code-example .copy-btn:hover {
+            background: #4b5563;
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>jQuery Reactive - Sintaxis Pura</h1>
+            <p>Demo con API 100% jQuery - Sin atributos mágicos en el HTML</p>
+        </div>
+        
+        <div class="demo-grid">
+            <!-- Demo 1: Contador con sintaxis jQuery pura -->
+            <div class="demo-card">
+                <h3>🎯 Contador (Sintaxis Pura)</h3>
+                <div class="demo-section">
+                    <div id="contador-display" class="counter-display">0</div>
+                    <div style="text-align: center;">
+                        <button class="btn" onclick="decrementarContador()">➖ Decrementar</button>
+                        <button class="btn" onclick="incrementarContador()">➕ Incrementar</button>
+                        <button class="btn" onclick="resetearContador()">🔄 Reset</button>
+                    </div>
+                </div>
+                <div class="state-display">
+                    Estado actual: <span id="contador-estado">0</span>
+                </div>
+                <div class="code-example">
+// Código jQuery puro:<br>
+$('#contador-display').reactiveText('contador');
+$('#contador-estado').reactiveText('contador');
+                </div>
+            </div>
+            
+            <!-- Demo 2: Formulario con binding bidireccional -->
+            <div class="demo-card">
+                <h3>📝 Formulario Reactivo (Binding Bidireccional)</h3>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <input type="text" id="input-nombre" placeholder="Ingresa tu nombre">
+                    </div>
+                    <div class="input-group">
+                        <input type="email" id="input-email" placeholder="Ingresa tu email">
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="input-edad" placeholder="Ingresa tu edad">
+                    </div>
+                </div>
+                <div id="saludo-formulario" class="reactive-element highlight">
+                    <p><strong>Hola</strong> <span id="nombre-span">Invitado</span>!</p>
+                    <p><strong>Email:</strong> <span id="email-span">No proporcionado</span></p>
+                    <p><strong>Edad:</strong> <span id="edad-span">No especificada</span> años</p>
+                </div>
+                <div class="code-example">
+// Binding bidireccional con jQuery:<br>
+$('#input-nombre').reactive('nombre');
+$('#nombre-span').reactiveText('nombre');
+$('#input-email').reactive('email');
+$('#email-span').reactiveText('email');
+                </div>
+            </div>
+            
+            <!-- Demo 3: Lista de tareas con métodos jQuery -->
+            <div class="demo-card">
+                <h3>📋 Lista de Tareas (jQuery Puro)</h3>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <input type="text" id="input-nueva-tarea" placeholder="Nueva tarea...">
+                    </div>
+                    <button class="btn" onclick="agregarTareaPura()">➕ Agregar Tarea</button>
+                    <div id="contenedor-tareas" style="margin: 15px 0;">
+                        <!-- Las tareas se generarán dinámicamente con jQuery -->
+                    </div>
+                    <div class="state-display">
+                        Total de tareas: <span id="total-tareas-span">0</span>
+                    </div>
+                </div>
+                <div class="code-example">
+// Crear elementos dinámicamente:<br>
+$('#contenedor-tareas').reactiveHtml('tareasHtml');
+$('#total-tareas-span').reactiveText('totalTareas');
+                </div>
+            </div>
+            
+            <!-- Demo 4: Toggle con clases jQuery -->
+            <div class="demo-card">
+                <h3>👁️ Toggle y Visibilidad (jQuery Style)</h3>
+                <div class="demo-section">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button class="btn" onclick="toggleElemento()">🔄 Toggle Elemento</button>
+                        <button class="btn" onclick="toggleModoOscuro()">🌙 Toggle Modo Oscuro</button>
+                    </div>
+                    <div id="elemento-toggleable" class="reactive-element highlight">
+                        <p>Este elemento aparece/desaparece con jQuery puro!</p>
+                        <p>Estado: <span id="estado-visible">Visible</span></p>
+                    </div>
+                    <div id="elemento-oculto" class="reactive-element" style="background: #fed7d7; color: #742a2a;">
+                        <p>🔍 El elemento está oculto</p>
+                    </div>
+                </div>
+                <div class="code-example">
+// Control de visibilidad con jQuery:<br>
+$('#elemento-toggleable').reactiveShow('visible');
+$('#elemento-oculto').reactiveHide('visible');
+$('#estado-visible').reactiveText('estadoVisible');
+                </div>
+            </div>
+            
+            <!-- Demo 5: Colores dinámicos con CSS -->
+            <div class="demo-card">
+                <h3>🎨 Colores Dinámicos (CSS Reactivo)</h3>
+                <div class="demo-section">
+                    <div style="text-align: center;">
+                        <button class="btn" onclick="cambiarColorPuro('rojo')">🔴 Rojo</button>
+                        <button class="btn" onclick="cambiarColorPuro('azul')">🔵 Azul</button>
+                        <button class="btn" onclick="cambiarColorPuro('verde')">🟢 Verde</button>
+                        <button class="btn" onclick="cambiarColorPuro('aleatorio')">🌈 Aleatorio</button>
+                    </div>
+                    <div id="color-box-pura" class="color-box"></div>
+                    <div class="state-display">
+                        Color actual: <span id="color-nombre-span">Gris por defecto</span>
+                    </div>
+                </div>
+                <div class="code-example">
+// CSS dinámico con jQuery:<br>
+$('#color-box-pura').reactiveCss('background-color', 'colorFondo');
+$('#color-nombre-span').reactiveText('colorNombre');
+                </div>
+            </div>
+            
+            <!-- Demo 6: Consola de eventos -->
+            <div class="demo-card">
+                <h3>🔧 Consola de Eventos (Debugging)</h3>
+                <div class="demo-section">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button class="btn" onclick="toggleDebug()">🐛 Toggle Debug</button>
+                        <button class="btn" onclick="limpiarConsolaPura()">🗑️ Limpiar</button>
+                        <button class="btn" onclick="mostrarEstadoPuro()">📊 Mostrar Estado</button>
+                    </div>
+                    <div class="state-display">
+                        Debug: <span id="debug-status-span">Desactivado</span>
+                    </div>
+                    <div id="consola-pura" class="console-output">
+                        <div class="console-line console-info">Consola iniciada - Sin atributos mágicos!</div>
+                    </div>
+                </div>
+                <div class="code-example">
+// Debugging con jQuery puro:<br>
+$('#debug-status-span').reactiveText('debugStatus');
+$('#consola-pura').reactiveHtml('consolaHtml');
+                </div>
+            </div>
+            
+            <!-- Demo 7: Múltiples bindings en un elemento -->
+            <div class="demo-card">
+                <h3>🔗 Múltiples Bindings (Elemento Complejo)</h3>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <input type="text" id="input-multi-titulo" placeholder="Título del card">
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="input-multi-color" placeholder="Color del texto (hex)">
+                    </div>
+                    <div id="card-complejo" class="reactive-element highlight" style="text-align: center; padding: 20px;">
+                        <h4 id="card-titulo">Título del Card</h4>
+                        <p id="card-descripcion">Este card tiene múltiples bindings reactivos</p>
+                        <small id="card-info">Cambia los inputs para ver la magia</small>
+                    </div>
+                </div>
+                <div class="code-example">
+// Múltiples bindings en el mismo elemento
+$('#input-multi-titulo').reactive('tituloCard');
+$('#card-titulo').reactiveText('tituloCard');
+$('#card-complejo').reactiveCss('background-color', 'fondoCard');
+$('#card-complejo').reactiveCss('color', 'colorTexto');</div>
+            </div>
+            
+            <!-- Demo 8: Eventos y Animaciones jQuery -->
+            <div class="demo-card">
+                <h3>⚡ Eventos y Animaciones (jQuery Style)</h3>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <button class="btn" onclick="agregarElementoAnimado()">✨ Agregar Elemento</button>
+                        <button class="btn" onclick="removerElementoAnimado()">🗑️ Remover Elemento</button>
+                        <button class="btn" onclick="animarContador()">🎭 Animar Contador</button>
+                    </div>
+                    <div id="contenedor-animado" style="min-height: 100px; border: 2px dashed #e2e8f0; border-radius: 8px; padding: 15px;">
+                        <p style="text-align: center; color: #718096;">Los elementos aparecerán aquí</p>
+                    </div>
+                    <div class="state-display">
+                        Elementos: <span id="contador-elementos">0</span>
+                    </div>
+                </div>
+                <div class="code-example">
+                    <pre><code>// HTML
+<div id="contenedor-animado"></div>
+<span id="contador-elementos"></span>
+
+// JavaScript
+$('#contenedor-animado').reactiveHtml('elementosHtml');
+$('#contador-elementos').reactiveText('totalElementos');
+
+function agregarElementoAnimado() {
+  const n = $.state('totalElementos') + 1;
+  const html = '<div class="reactive-element fade-in" style="background:#68d391;color:white;margin:5px 0;padding:10px;border-radius:8px;">✨ Elemento #' + n + '</div>';
+  const actual = $('#contenedor-animado').html();
+  $.state('elementosHtml', actual.includes('Los elementos aparecerán aquí') ? html : actual + html);
+  $.state('totalElementos', n);
+}
+
+function removerElementoAnimado() {
+  const $els = $('#contenedor-animado').children('.reactive-element');
+  if ($els.length > 0) {
+    $els.last().slideUp(300, function() {
+      $(this).remove();
+      const total = $.state('totalElementos') - 1;
+      $.state('totalElementos', total);
+      if (total === 0) {
+        $.state('elementosHtml', '<p style="text-align:center;color:#718096;">Los elementos aparecerán aquí</p>');
+      }
+    });
+  }
+}
+                    </code></pre>
+                </div>
+            </div>
+            
+            <!-- Demo 9: Watch (Observadores) con jQuery Puro -->
+            <div class="demo-card">
+                <h3>👀 Watch (Observadores) con jQuery Puro</h3>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <input type="range" id="nivel-input" min="0" max="100" step="5">
+                    </div>
+                    <div class="state-display">
+                        <span id="nivel-label">Nivel: 0</span>
+                    </div>
+                    <div style="background:#edf2f7; border-radius:8px; height:14px;">
+                        <div id="barra-progreso" style="height:14px; background:#667eea; width:0%; border-radius:8px;"></div>
+                    </div>
+                    <div class="state-display">
+                        <div id="mensaje-validacion"></div>
+                    </div>
+                </div>
+                <div class="code-example">
+                    <pre><code>// HTML
+<input type="range" id="nivel-input" min="0" max="100" step="5" />
+<span id="nivel-label"></span>
+<div id="barra-progreso"></div>
+<div id="mensaje-validacion"></div>
+
+// JavaScript
+$('#nivel-input').reactive('nivel');
+$('#nivel-label').reactiveText('nivelLabel');
+$('#barra-progreso').reactiveCss('width', 'nivelPorcentaje');
+$('#mensaje-validacion').reactiveHtml('mensajeValidacion');
+
+$.watch('nivel', function(nuevo, anterior, key) {
+  $.state('nivelLabel', 'Nivel: ' + nuevo);
+  $.state('nivelPorcentaje', nuevo + '%');
+  $.state('mensajeValidacion', nuevo >= 70 ? '<span class="console-info">Alto nivel</span>' : '<span class="console-warn">Nivel medio/bajo</span>');
+});
+
+$.watch(function(newVal, oldVal, key) {
+  if (key === 'contador') {
+    $('#consola-pura').append('<div class="console-line console-info">Contador: ' + (oldVal ?? 0) + ' → ' + newVal + '</div>');
+  }
+});
+                    </code></pre>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🎯 jQuery Reactive - API 100% jQuery sin atributos mágicos</p>
+            <p>Todos los bindings se configuran desde JavaScript, manteniendo el HTML limpio</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="src/polyfills.js"></script>
+    <script src="src/jquery.reactive.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            console.log('🚀 Iniciando demo con sintaxis jQuery pura...');
+            
+            // Inicializar estados
+            $.reactiveInit({
+                contador: 0,
+                nombre: 'Invitado',
+                email: 'No proporcionado',
+                edad: 'No especificada',
+                tareas: [],
+                tareasHtml: '<p style="text-align: center; color: #718096;">No hay tareas</p>',
+                totalTareas: 0,
+                visible: true,
+                estadoVisible: 'Visible',
+                colorFondo: '#3498db',
+                colorNombre: 'Azul',
+                debugStatus: 'Desactivado',
+                consolaHtml: '<div class="console-line console-info">Consola iniciada - Sin atributos mágicos!</div>',
+                tituloCard: 'Título del Card',
+                fondoCard: '#3498db',
+                colorTexto: '#ffffff',
+                elementosHtml: '<p style="text-align: center; color: #718096;">Los elementos aparecerán aquí</p>',
+                totalElementos: 0,
+                // Estados para demo de watch
+                nivel: 25,
+                nivelLabel: 'Nivel: 25',
+                nivelPorcentaje: '25%',
+                mensajeValidacion: '<span class="console-info">Nivel inicial</span>'
+            });
+            
+            // Configurar reactividad con sintaxis jQuery pura
+            configurarReactividad();
+            
+            // Watchers demo
+            $.watch('nivel', function(nuevo, anterior, key) {
+                $.state('nivelLabel', 'Nivel: ' + nuevo);
+                $.state('nivelPorcentaje', nuevo + '%');
+                $.state('mensajeValidacion', nuevo >= 70 ? '<span class="console-info">Alto nivel</span>' : '<span class="console-warn">Nivel medio/bajo</span>');
+            });
+            
+            $.watch(function(newVal, oldVal, key) {
+                if (key === 'contador') {
+                    $('#consola-pura').append('<div class="console-line console-info">Contador: ' + (oldVal ?? 0) + ' → ' + newVal + '</div>');
+                }
+            });
+            
+            console.log('✅ Demo inicializada con sintaxis jQuery pura');
+        });
+        
+        function configurarReactividad() {
+            // Demo 1: Contador
+            $('#contador-display').reactiveText('contador');
+            $('#contador-estado').reactiveText('contador');
+            
+            // Demo 2: Formulario bidireccional
+            $('#input-nombre').reactive('nombre');
+            $('#nombre-span').reactiveText('nombre');
+            $('#input-email').reactive('email');
+            $('#email-span').reactiveText('email');
+            $('#input-edad').reactive('edad');
+            $('#edad-span').reactiveText('edad');
+            
+            // Demo 3: Lista de tareas
+            $('#contenedor-tareas').reactiveHtml('tareasHtml');
+            $('#total-tareas-span').reactiveText('totalTareas');
+            
+            // Demo 4: Toggle
+            $('#elemento-toggleable').reactiveShow('visible');
+            $('#elemento-oculto').reactiveHide('visible');
+            $('#estado-visible').reactiveText('estadoVisible');
+            
+            // Demo 5: Colores
+            $('#color-box-pura').reactiveCss('background-color', 'colorFondo');
+            $('#color-nombre-span').reactiveText('colorNombre');
+            
+            // Demo 6: Debug
+            $('#debug-status-span').reactiveText('debugStatus');
+            $('#consola-pura').reactiveHtml('consolaHtml');
+            
+            // Demo 7: Múltiples bindings
+            $('#input-multi-titulo').reactive('tituloCard');
+            $('#card-titulo').reactiveText('tituloCard');
+            $('#card-complejo').reactiveCss('background-color', 'fondoCard');
+            $('#card-complejo').reactiveCss('color', 'colorTexto');
+            
+            // Demo 8: Animaciones
+            $('#contenedor-animado').reactiveHtml('elementosHtml');
+            $('#contador-elementos').reactiveText('totalElementos');
+            
+            // Demo 9: Watch (Observadores)
+            $('#nivel-input').reactive('nivel');
+            $('#nivel-label').reactiveText('nivelLabel');
+            $('#barra-progreso').reactiveCss('width', 'nivelPorcentaje');
+            $('#mensaje-validacion').reactiveHtml('mensajeValidacion');
+        }
+        
+        // Funciones de control
+        function incrementarContador() {
+            $.state('contador', $.state('contador') + 1);
+        }
+        
+        function decrementarContador() {
+            $.state('contador', $.state('contador') - 1);
+        }
+        
+        function resetearContador() {
+            $.state('contador', 0);
+        }
+        
+        function agregarTareaPura() {
+            const tareaTexto = $('#input-nueva-tarea').val().trim();
+            if (tareaTexto) {
+                const tareas = $.state('tareas');
+                tareas.push({
+                    id: Date.now(),
+                    texto: tareaTexto
+                });
+                
+                actualizarTareasPura();
+                $('#input-nueva-tarea').val('');
+                agregarMensajePura(`Tarea agregada: "${tareaTexto}"`, 'info');
+            }
+        }
+        
+        function actualizarTareasPura() {
+            const tareas = $.state('tareas');
+            const html = tareas.map(tarea => `
+                <div class="task-item fade-in">
+                    <span>${tarea.texto}</span>
+                    <button onclick="eliminarTareaPura(${tarea.id})" class="btn-eliminar">❌</button>
+                </div>
+            `).join('');
+            
+            $.state({
+                tareasHtml: html || '<p style="text-align: center; color: #718096;">No hay tareas</p>',
+                totalTareas: tareas.length
+            });
+        }
+        
+        function eliminarTareaPura(id) {
+            const tareas = $.state('tareas');
+            const tarea = tareas.find(t => t.id === id);
+            const nuevasTareas = tareas.filter(t => t.id !== id);
+            
+            $.state('tareas', nuevasTareas);
+            actualizarTareasPura();
+            agregarMensajePura(`Tarea eliminada: "${tarea.texto}"`, 'warn');
+        }
+        
+        function toggleElemento() {
+            const visible = $.state('visible');
+            $.state({
+                visible: !visible,
+                estadoVisible: visible ? 'Oculto' : 'Visible'
+            });
+        }
+        
+        function toggleModoOscuro() {
+            const modoOscuro = $.state('modoOscuro');
+            $.state('modoOscuro', !modoOscuro);
+            
+            if (!modoOscuro) {
+                $('#elemento-toggleable').addClass('dark-mode');
+            } else {
+                $('#elemento-toggleable').removeClass('dark-mode');
+            }
+        }
+        
+        function cambiarColorPuro(color) {
+            const colores = {
+                rojo: '#e53e3e',
+                azul: '#3182ce',
+                verde: '#38a169',
+                aleatorio: `#${Math.floor(Math.random()*16777215).toString(16)}`
+            };
+            
+            const colorHex = colores[color] || colores.aleatorio;
+            const nombreColor = color.charAt(0).toUpperCase() + color.slice(1);
+            
+            $.state({
+                colorFondo: colorHex,
+                colorNombre: nombreColor === 'Aleatorio' ? `Aleatorio: ${colorHex}` : nombreColor
+            });
+            
+            agregarMensajePura(`Color cambiado a: ${nombreColor}`, 'info');
+        }
+        
+        function toggleDebug() {
+            const debug = $.state('debugStatus') === 'Activado';
+            $.state({
+                debugStatus: debug ? 'Desactivado' : 'Activado'
+            });
+            
+            agregarMensajePura(`Debug ${debug ? 'desactivado' : 'activado'}`, 'info');
+        }
+        
+        function limpiarConsolaPura() {
+            $.state('consolaHtml', '<div class="console-line console-info">Consola limpiada</div>');
+        }
+        
+        function mostrarEstadoPuro() {
+            const estado = $.state();
+            agregarMensajePura('Estado completo:', 'info');
+            agregarMensajePura(JSON.stringify(estado, null, 2), 'info');
+        }
+        
+        function agregarMensajePura(mensaje, tipo = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const clase = `console-${tipo}`;
+            const linea = `<div class="console-line ${clase}">[${timestamp}] ${mensaje}</div>`;
+            
+            const consolaActual = $.state('consolaHtml');
+            $.state('consolaHtml', consolaActual + linea);
+            
+            // Auto-scroll
+            setTimeout(() => {
+                $('#consola-pura').scrollTop($('#consola-pura')[0].scrollHeight);
+            }, 100);
+        }
+        
+        function agregarElementoAnimado() {
+            const elementos = $.state('totalElementos') + 1;
+            const html = `
+                <div class="reactive-element fade-in" style="background: #68d391; color: white; margin: 5px 0; padding: 10px; border-radius: 8px;">
+                    ✨ Elemento #${elementos} agregado dinámicamente
+                </div>
+            `;
+            
+            const htmlActual = $('#contenedor-animado').html();
+            if (htmlActual.includes('Los elementos aparecerán aquí')) {
+                $.state('elementosHtml', html);
+            } else {
+                $.state('elementosHtml', htmlActual + html);
+            }
+            
+            $.state('totalElementos', elementos);
+            agregarMensajePura(`Elemento animado agregado (#${elementos})`, 'info');
+        }
+        
+        function removerElementoAnimado() {
+            const $elementos = $('#contenedor-animado').children('.reactive-element');
+            if ($elementos.length > 0) {
+                $elementos.last().slideUp(300, function() {
+                    $(this).remove();
+                    const total = $.state('totalElementos') - 1;
+                    $.state('totalElementos', total);
+                    
+                    if (total === 0) {
+                        $.state('elementosHtml', '<p style="text-align: center; color: #718096;">Los elementos aparecerán aquí</p>');
+                    }
+                });
+                agregarMensajePura('Elemento removido con animación', 'warn');
+            }
+        }
+        
+        function animarContador() {
+            const $display = $('#contador-display');
+            $display.fadeOut(200, function() {
+                $(this).fadeIn(200);
+            });
+            agregarMensajePura('Contador animado con fade', 'info');
+        }
+        
+        // Eventos adicionales para demostrar compatibilidad con jQuery
+        $(document).ready(function() {
+            // Eventos normales de jQuery
+            $('#input-nueva-tarea').on('keypress', function(e) {
+                if (e.which === 13) { // Enter
+                    agregarTareaPura();
+                }
+            });
+            
+            // Hover effects con jQuery
+            $('.btn').hover(
+                function() {
+                    $(this).addClass('hovered');
+                },
+                function() {
+                    $(this).removeClass('hovered');
+                }
+            );
+            
+            // Focus effects
+            $('input').on('focus', function() {
+                $(this).addClass('focused');
+            }).on('blur', function() {
+                $(this).removeClass('focused');
+            });
+        });
+    </script>
+    <script>
+      // Copiar código de bloques
+      $(document).ready(function(){
+        $('.code-example').each(function(){
+          const $btn = $('<button class="copy-btn">Copiar</button>');
+          $(this).append($btn);
+          $btn.on('click', () => {
+            const text = $(this).text();
+            navigator.clipboard.writeText(text).then(() => {
+              $btn.text('Copiado!');
+              setTimeout(()=> $btn.text('Copiar'), 1500);
+            });
+          });
+        });
+      });
+    </script>
+ </body>
+ </html>

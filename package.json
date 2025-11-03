@@ -1,0 +1,53 @@
+{
+  "name": "jquery-reactive-state",
+  "version": "1.0.0",
+  "description": "Una mini biblioteca de estados reactivos para jQuery con API imperativa",
+  "main": "src/jquery.reactive.js",
+  "module": "src/jquery.reactive.js",
+  "files": [
+    "src/jquery.reactive.js",
+    "src/jquery.reactive.min.js",
+    "src/polyfills.js",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "demo": "vite preview --open demo.html"
+  },
+  "keywords": [
+    "jquery",
+    "reactive",
+    "state",
+    "imperative",
+    "vue",
+    "react",
+    "lightweight",
+    "minimal"
+  ],
+  "author": "jQuery Reactive Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jquery-reactive/jquery-reactive-state.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jquery-reactive/jquery-reactive-state/issues"
+  },
+  "homepage": "https://github.com/jquery-reactive/jquery-reactive-state#readme",
+  "devDependencies": {
+    "vite": "^7.1.7"
+  },
+  "dependencies": {
+    "jquery": "^3.7.1"
+  },
+  "peerDependencies": {
+    "jquery": ">=1.7.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "IE 11"
+  ]
+}

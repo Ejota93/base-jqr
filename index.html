@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>jQuery Reactive State Library</title>
+    <meta name="description" content="Biblioteca de estados reactivos con API imperativa al estilo jQuery">
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .container {
+        background: white;
+        border-radius: 15px;
+        padding: 40px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        text-align: center;
+        max-width: 600px;
+      }
+      
+      h1 {
+        color: #4a5568;
+        margin-bottom: 20px;
+        font-size: 2.5rem;
+      }
+      
+      p {
+        color: #718096;
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+      }
+      
+      .btn {
+        display: inline-block;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        text-decoration: none;
+        padding: 15px 30px;
+        border-radius: 25px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        margin: 10px;
+        border: none;
+        cursor: pointer;
+      }
+      
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      }
+      
+      .features {
+        margin: 30px 0;
+        text-align: left;
+      }
+      
+      .features h3 {
+        color: #4a5568;
+        margin-bottom: 15px;
+      }
+      
+      .features ul {
+        list-style: none;
+        padding: 0;
+      }
+      
+      .features li {
+        color: #718096;
+        margin: 10px 0;
+        padding-left: 25px;
+        position: relative;
+      }
+      
+      .features li:before {
+        content: "✅";
+        position: absolute;
+        left: 0;
+      }
+      
+      .version {
+        color: #a0aec0;
+        font-size: 0.9rem;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🚀 jQuery Reactive State Library</h1>
+      <p>Una mini biblioteca de estados reactivos con API imperativa al estilo jQuery</p>
+      
+      <div class="features">
+        <h3>Características principales:</h3>
+        <ul>
+          <li>Sistema de estados reactivos centralizado</li>
+          <li>API imperativa al estilo jQuery</li>
+          <li>Rendering eficiente con batch updates</li>
+          <li>Sintaxis fluida (chaining) compatible con jQuery</li>
+          <li>Peso mínimo (&lt;10kb minificado)</li>
+          <li>Compatibilidad con navegadores modernos y antiguos</li>
+        </ul>
+      </div>
+      
+      <div>
+        <a href="demo.html" class="btn">🎮 Ver Demo Interactivo</a>
+        <a href="#" class="btn" onclick="mostrarDocumentacion()">📖 Ver Documentación</a>
+      </div>
+      
+      <div class="version">Versión 1.0.0</div>
+    </div>
+
+    <script>
+      function mostrarDocumentacion() {
+        window.open('README.md', '_blank');
+      }
+    </script>
+  </body>
+</html>
