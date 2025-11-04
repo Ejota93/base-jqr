@@ -24,29 +24,8 @@ npm install jquery-reactive-state
 - `$.reactiveInit(initialState)`: inicializa el estado global.
 - `$.state(key?)`: obtiene todo el estado o una clave.
 - `$.state(key, value)` / `$.state(object)`: actualiza estado (uno o varios valores).
-- Soporte de updater functions: `$.state('clave', prev => next)` y `$.state({ clave: prev => next })`.
 - `$.watch(key, cb)` y `$.watch(cb)`: observa cambios de una clave o de todas.
 - Render: el DOM se actualiza automáticamente con batch updates; puedes forzar con `$.render(key?)`.
-
----
-
-## Updater functions (prev => next)
-
-- Forma corta para calcular el nuevo valor a partir del anterior:
-  - Una clave: `$.state('contador', prev => prev + 1)`.
-  - Varias claves (mezcladas con valores directos): `$.state({ contador: p => p + 1, visible: true })`.
-- Compatibilidad: activado por defecto. Si antes guardabas funciones como valor de estado, puedes desactivar esta característica con `$.reactiveConfig({ allowUpdaterFn: false })`.
-- Nota importante: cuando uses `$.state({ ... })` con funciones en varias claves, cada función recibe el estado anterior de su propia clave. Si una clave depende del nuevo valor de otra dentro del mismo batch, calcula primero el valor externamente y pásalo como valor directo en el objeto.
-
-Ejemplo seguro (dependencias cruzadas):
-```javascript
-const nextTareas = [...$.state('tareas'), nueva];
-$.state({
-  tareas: nextTareas,
-  tareasHtml: nextTareas.map(x => `<li>${x}</li>`).join(''),
-  totalTareas: nextTareas.length
-});
-```
 
 ---
 
@@ -89,13 +68,15 @@ $.reactiveInit({ contador: 0, nombre: '', email: '' });
 
 ## Estilo B: API jQuery Pura (Imperativo)
 
-Sin atributos en el HTML. Vinculas desde JavaScript usando métodos jQuery:
-- `$().reactive('clave')` → inputs/textarea (bidireccional)
-- `$().reactiveText('clave')` → texto
-- `$().reactiveHtml('clave')` → HTML
-- `$().reactiveCss(prop, 'clave')` → CSS
-- `$().reactiveShow('clave')` / `$().reactiveHide('clave')` → visibilidad
-- `$().reactive('clave').list(templateFn, options)` → renderizado eficiente de listas
+Sin atributos en el HTML. Vinculas desde JavaScript usando un binder encadenable:
+- `$(el).reactive('clave').val()` → inputs/textarea/select (bidireccional)
+- `$(el).reactive('clave').text()` → texto
+- `$(el).reactive('clave').html()` → HTML
+- `$(el).reactive('clave').css('<prop>')` → CSS
+- `$(el).reactive('clave').show()` / `.hide()` → visibilidad
+- `$(el).reactive('clave').enabled()` / `.disabled()` → habilitar/deshabilitar
+- `$(el).reactive('clave').attr('<name>')` / `.prop('<name>')` / `.data('<key>')`
+- `$(el).reactive('lista').list(templateFn, { key: 'id' })` → listas eficientes
 
 Ejemplo (Contador + Formulario):
 ```html
@@ -117,62 +98,34 @@ Ejemplo (Contador + Formulario):
 <script>
 $.reactiveInit({ contador: 0, nombre: '', email: '' });
 
-$('#contador-display').reactiveText('contador');
-$('#input-nombre').reactive('nombre');
-$('#nombre-span').reactiveText('nombre');
-$('#input-email').reactive('email');
-$('#email-span').reactiveText('email');
+$('#contador-display').reactive('contador').text();
+$('#input-nombre').reactive('nombre').val();
+$('#nombre-span').reactive('nombre').text();
+$('#input-email').reactive('email').val();
+$('#email-span').reactive('email').text();
 </script>
 ```
 
 ---
 
-## Renderizado de Listas con `.list()`
+## Funciones Actualizadoras (Updater Functions)
 
-El método `.list()` es la forma más eficiente y recomendada para renderizar listas o colecciones de datos. En lugar de reemplazar todo el `innerHTML` en cada cambio (lo que es lento y destruye el estado de los elementos), `.list()` utiliza un algoritmo de "diffing" para calcular las diferencias entre el array de datos anterior y el nuevo, y aplica solo los cambios necesarios al DOM.
+Permiten calcular el nuevo valor en función del anterior de forma segura y declarativa.
 
-**Sintaxis:**
+- Un solo valor:
 ```javascript
-$('#container').reactive('myArray').list(templateFunction, { key: 'uniqueId' });
+$.state('contador', prev => prev + 1);
+$.state('nombre', prev => prev.trim());
 ```
-
-- `templateFunction`: una función que recibe un elemento del array y devuelve el string HTML para ese elemento.
-- `options.key`: el nombre de la propiedad en tus objetos de datos que sirve como un identificador único. Esto es **crucial** para que el algoritmo de diffing funcione correctamente.
-
-**Ejemplo (Lista de Tareas con `.list()`):**
-```html
-<!-- HTML -->
-<ul id="task-list"></ul>
-
-<!-- JavaScript -->
-<script>
-// 1. Inicializar el estado con un array vacío
-$.reactiveInit({ 
-  tareas: [
-    { id: 1, texto: 'Aprender jQuery Reactive' },
-    { id: 2, texto: 'Crear una demo increíble' }
-  ]
+- Múltiples valores en batch:
+```javascript
+$.state({
+  contador: c => c + 1,
+  nivelPorcentaje: n => Math.min(100, Math.max(0, n)),
+  nombre: n => n.trim()
 });
-
-// 2. Definir la función de plantilla
-function renderTarea(tarea) {
-  return `<li data-id="${tarea.id}">${tarea.texto}</li>`;
-}
-
-// 3. Vincular el contenedor a la lista
-$('#task-list').reactive('tareas').list(renderTarea, { key: 'id' });
-
-// 4. Para añadir un elemento, simplemente actualiza el array
-function agregarTarea(texto) {
-  const nuevaTarea = { id: Date.now(), texto: texto };
-  $.state('tareas', prev => [...prev, nuevaTarea]);
-}
-</script>
-
-**Beneficios de usar `.list()`:**
-- **Rendimiento Óptimo:** Solo se tocan los elementos del DOM que realmente cambian.
-- **Mantenimiento de Estado:** Los elementos que no cambian conservan su estado (por ejemplo, si tienen animaciones CSS o eventos adjuntos).
-- **Código más Limpio:** No necesitas construir manualmente el HTML de la lista en un `watcher`.
+```
+- Manejo de errores: si el updater lanza una excepción, se captura y registra en consola sin romper la app.
 
 ---
 
@@ -186,7 +139,7 @@ Atributos:
 ```
 jQuery Puro:
 ```javascript
-$('#contador-display').reactiveText('contador');
+$('#contador-display').reactive('contador').text();
 // ...acciones con $.state('contador', ...)
 ```
 
@@ -198,8 +151,8 @@ Atributos:
 ```
 jQuery Puro:
 ```javascript
-$('#input-nombre').reactive('nombre');
-$('#nombre-span').reactiveText('nombre');
+$('#input-nombre').reactive('nombre').val();
+$('#nombre-span').reactive('nombre').text();
 ```
 
 ### 3) Lista de Tareas (HTML dinámico)
@@ -210,8 +163,8 @@ Atributos:
 ```
 jQuery Puro:
 ```javascript
-$('#lista-tareas').reactiveHtml('tareasHtml');
-$('#total-tareas-span').reactiveText('totalTareas');
+$('#lista-tareas').reactive('tareasHtml').html();
+$('#total-tareas-span').reactive('totalTareas').text();
 ```
 
 ### 4) Toggle de Visibilidad
@@ -221,7 +174,7 @@ Atributos:
 ```
 jQuery Puro:
 ```javascript
-$('#contenido').reactiveShow('visible');
+$('#contenido').reactive('visible').show();
 ```
 
 ### 5) Colores Dinámicos (CSS)
@@ -232,8 +185,8 @@ Atributos:
 ```
 jQuery Puro:
 ```javascript
-$('#box').reactiveCss('background-color', 'colorFondo');
-$('#color-nombre-span').reactiveText('colorNombre');
+$('#box').reactive('colorFondo').css('background-color');
+$('#color-nombre-span').reactive('colorNombre').text();
 ```
 
 ### 6) Observadores (watch)
@@ -261,14 +214,14 @@ A continuación, 5 ejemplos completos (HTML + JavaScript) usando únicamente la 
 ```html
 <div>
   <div id="count">0</div>
-  <button onclick="$.state('contador', $.state('contador') - 1)">-</button>
-  <button onclick="$.state('contador', $.state('contador') + 1)">+</button>
+  <button onclick="$.state('contador', prev => prev - 1)">-</button>
+  <button onclick="$.state('contador', prev => prev + 1)">+</button>
   <button onclick="$.state('contador', 0)">Reset</button>
 </div>
 
 <script>
 $.reactiveInit({ contador: 0 });
-$('#count').reactiveText('contador');
+$('#count').reactive('contador').text();
 </script>
 ```
 
@@ -283,10 +236,10 @@ $('#count').reactiveText('contador');
 
 <script>
 $.reactiveInit({ nombre: '', email: '' });
-$('#nombre').reactive('nombre');
-$('#email').reactive('email');
-$('#nombre-out').reactiveText('nombre');
-$('#email-out').reactiveText('email');
+$('#nombre').reactive('nombre').val();
+$('#email').reactive('email').val();
+$('#nombre-out').reactive('nombre').text();
+$('#email-out').reactive('email').text();
 </script>
 ```
 
@@ -301,17 +254,18 @@ $('#email-out').reactiveText('email');
 
 <script>
 $.reactiveInit({ tareas: [], tareasHtml: '', totalTareas: 0 });
-$('#lista').reactiveHtml('tareasHtml');
-$('#total').reactiveText('totalTareas');
+$('#lista').reactive('tareasHtml').html();
+$('#total').reactive('totalTareas').text();
 
 function agregar() {
   const t = $('#nueva').val().trim();
   if (!t) return;
-  const next = [...$.state('tareas'), t];
+  const arr = $.state('tareas');
+  arr.push(t);
   $.state({
-    tareas: next,
-    tareasHtml: next.map(x => `<li>${x}</li>`).join(''),
-    totalTareas: next.length
+    tareas: arr,
+    tareasHtml: arr.map(x => `<li>${x}</li>`).join(''),
+    totalTareas: arr.length
   });
   $('#nueva').val('');
 }
@@ -321,13 +275,13 @@ function agregar() {
 #### 4) Toggle visibilidad completo (jQuery puro)
 ```html
 <div>
-  <button onclick="$.state('visible', !$.state('visible'))">Toggle</button>
+  <button onclick="$.state('visible', prev => !prev)">Toggle</button>
   <div id="panel">Panel secreto</div>
 </div>
 
 <script>
 $.reactiveInit({ visible: true });
-$('#panel').reactiveShow('visible');
+$('#panel').reactive('visible').show();
 </script>
 ```
 
@@ -341,9 +295,9 @@ $('#panel').reactiveShow('visible');
 
 <script>
 $.reactiveInit({ porcentaje: 0, color: '#eeeeee', label: '0%' });
-$('#nivel').reactive('porcentaje');
-$('#label').reactiveText('label');
-$('#box').reactiveCss('background-color', 'color');
+$('#nivel').reactive('porcentaje').val();
+$('#label').reactive('label').text();
+$('#box').reactive('color').css('background-color');
 
 $.watch('porcentaje', function(p) {
   const val = Math.round(p);
@@ -375,11 +329,12 @@ $.reactiveInit({ tareas: [], tareasHtml: '', totalTareas: 0 });
 function agregarTarea() {
   const t = $('#nuevaTarea').val().trim();
   if (!t) return;
-  const next = [...$.state('tareas'), t];
+  const arr = $.state('tareas');
+  arr.push(t);
   $.state({
-    tareas: next,
-    tareasHtml: next.map(x => `<li>${x}</li>`).join(''),
-    totalTareas: next.length
+    tareas: arr,
+    tareasHtml: arr.map(x => `<li>${x}</li>`).join(''),
+    totalTareas: arr.length
   });
   $('#nuevaTarea').val('');
 }
@@ -397,17 +352,18 @@ function agregarTarea() {
 
 <script>
 $.reactiveInit({ tareas: [], tareasHtml: '', totalTareas: 0 });
-$('#lista').reactiveHtml('tareasHtml');
-$('#total').reactiveText('totalTareas');
+$('#lista').reactive('tareasHtml').html();
+$('#total').reactive('totalTareas').text();
 
 function agregarTarea() {
   const t = $('#nuevaTarea').val().trim();
   if (!t) return;
-  const next = [...$.state('tareas'), t];
+  const arr = $.state('tareas');
+  arr.push(t);
   $.state({
-    tareas: next,
-    tareasHtml: next.map(x => `<li>${x}</li>`).join(''),
-    totalTareas: next.length
+    tareas: arr,
+    tareasHtml: arr.map(x => `<li>${x}</li>`).join(''),
+    totalTareas: arr.length
   });
   $('#nuevaTarea').val('');
 }
@@ -427,10 +383,10 @@ function agregarTarea() {
 
 <script>
 $.reactiveInit({ nivel: 25, nivelLabel: 'Nivel: 25', nivelPorcentaje: '25%', mensajeValidacion: 'Nivel inicial' });
-$('#nivel').reactive('nivel');
-$('#label').reactiveText('nivelLabel');
-$('#barra').reactiveCss('width', 'nivelPorcentaje');
-$('#msg').reactiveHtml('mensajeValidacion');
+$('#nivel').reactive('nivel').val();
+$('#label').reactive('nivelLabel').text();
+$('#barra').reactive('nivelPorcentaje').css('width');
+$('#msg').reactive('mensajeValidacion').html();
 
 $.watch('nivel', function(nuevo) {
   $.state('nivelLabel', 'Nivel: ' + nuevo);
@@ -444,12 +400,12 @@ $.watch('nivel', function(nuevo) {
 
 ## Guía de Migración entre Estilos
 
-- `st-text="clave"` ↔ `$(el).reactiveText('clave')`
-- `st-html="clave"` ↔ `$(el).reactiveHtml('clave')`
-- `st-value="clave"` ↔ `$(input).reactive('clave')`
-- `st-show="clave"` ↔ `$(el).reactiveShow('clave')`
-- `st-hide="clave"` ↔ `$(el).reactiveHide('clave')`
-- `st-css-<prop>="clave"` ↔ `$(el).reactiveCss('<prop>', 'clave')`
+- `st-text="clave"` ↔ `$(el).reactive('clave').text()`
+- `st-html="clave"` ↔ `$(el).reactive('clave').html()`
+- `st-value="clave"` ↔ `$(input).reactive('clave').val()`
+- `st-show="clave"` ↔ `$(el).reactive('clave').show()`
+- `st-hide="clave"` ↔ `$(el).reactive('clave').hide()`
+- `st-css-<prop>="clave"` ↔ `$(el).reactive('clave').css('<prop>')`
 
 Pasos:
 1. Remueve atributos `st-*` del HTML.
@@ -473,18 +429,21 @@ Pasos:
 ### Global (`$`)
 - `$.reactiveInit(initialState)`
 - `$.state()` / `$.state(key)` / `$.state(key, value)` / `$.state(object)`
-- Updater functions: `$.state('key', prev => next)` y `$.state({ key: prev => next })`
 - `$.watch(key, cb)` / `$.watch(cb)`
 - `$.render(key?)`
 - `$.reactiveConfig(options)` / `$.reactiveReset()`
 
 ### Elementos (`$.fn`)
-- `$.fn.reactive(key)`
-- `$.fn.reactiveText(key)`
-- `$.fn.reactiveHtml(key)`
-- `$.fn.reactiveCss(prop, key)`
-- `$.fn.reactiveShow(key)` / `$.fn.reactiveHide(key)`
-- `$.fn.reactive(key).list(templateFn, options)`
+- `$(el).reactive('key').text()`
+- `$(el).reactive('key').html()`
+- `$(input).reactive('key').val()`
+- `$(el).reactive('key').css('<prop>')`
+- `$(el).reactive('key').show()` / `$(el).reactive('key').hide()`
+- `$(el).reactive('key').enabled()` / `$(el).reactive('key').disabled()`
+- `$(el).reactive('key').attr('<name>')` / `$(el).reactive('key').prop('<name>')` / `$(el).reactive('key').data('<key>')`
+- `$(el).reactive('lista').list(templateFn, options)`
+
+Nota: Los métodos legacy `reactiveText/reactiveHtml/reactiveCss/reactiveShow/reactiveHide` siguen disponibles pero están obsoletos. Usa el binder encadenable `$(el).reactive(key).…` para todas las vinculaciones.
 
 ## Solución de Problemas
 

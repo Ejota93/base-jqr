@@ -26,6 +26,13 @@ $.state({                                      // Actualizar múltiples valores
     visible: false
 });
 
+// 3.1 Actualizaciones con funciones (updater functions)
+$.state('contador', prev => prev + 1);
+$.state({
+    contador: c => c - 1,
+    nombre: n => n.trim()
+});
+
 // 4. Observar cambios
 $.watch('contador', function(nuevoValor, valorAnterior, key) {
     console.log(`${key} cambió de ${valorAnterior} a ${nuevoValor}`);
@@ -69,7 +76,7 @@ $.render();                                    // Renderizar todo
 /**
  * Ejemplo 3: Toggle de visibilidad
  * HTML:
- * <button onclick="$.state('visible', !$.state('visible'))">Toggle</button>
+ * <button onclick="$.state('visible', prev => !prev)">Toggle</button>
  * <div st-show="visible">
  *     <p>Este elemento aparece/desaparece!</p>
  * </div>
@@ -185,7 +192,7 @@ $.reactiveConfig({
 // MÉTODOS DE ELEMENTO (jQuery chaining)
 // =====================================================
 
-// Vincular elementos al estado
+// Vincular elementos al estado (modo atributos utilitario)
 $('#miElemento').bindState('mensaje', 'text');      // Texto
 $('#miInput').bindState('valor', 'value');         // Valor de input
 $('#miDiv').bindState('visible', 'show');         // Mostrar/ocultar
@@ -241,7 +248,7 @@ function ejemploFormularioJQueryPuro() {
         
         // Elementos de salida reactiva
         $('#saludo-personalizado')
-            .reactiveText('nombre')
+            .reactive('nombre').text()
             .addClass('alert alert-info mt-3');
         
         // Validación en tiempo real
@@ -401,7 +408,7 @@ function ejemploPanelControlJQueryPuro() {
     $(document).ready(function() {
         // Título reactivo
         $('#titulo-panel')
-            .reactiveText('tituloPanel')
+            .reactive('tituloPanel').text()
             .addClass('titulo-principal');
         
         // Botones de tema
@@ -446,7 +453,7 @@ function ejemploPanelControlJQueryPuro() {
         // Mensaje de estado reactivo
         $('<div>')
             .attr('id', 'mensaje-estado')
-            .reactiveText('mensajeEstado')
+            .reactive('mensajeEstado').text()
             .addClass('mensaje-sistema')
             .appendTo('#panel-control');
         
@@ -579,7 +586,7 @@ function ejemploRegistroJQueryPuro() {
         
         // Mensaje del formulario
         $('#formulario-mensaje')
-            .reactiveText('mensajeFormulario')
+            .reactive('mensajeFormulario').text()
             .addClass('mensaje-formulario');
     });
 }
@@ -713,11 +720,11 @@ function crearAplicacionContador() {
     
     // Funciones de la aplicación
     window.incrementar = function() {
-        $.state('contador', $.state('contador') + 1);
+        $.state('contador', prev => prev + 1);
     };
     
     window.decrementar = function() {
-        $.state('contador', $.state('contador') - 1);
+        $.state('contador', prev => prev - 1);
     };
     
     window.deshacer = function() {

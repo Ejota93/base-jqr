@@ -292,8 +292,8 @@
                 </div>
                 <div class="code-example">
 // Código jQuery puro:<br>
-$('#contador-display').reactiveText('contador');
-$('#contador-estado').reactiveText('contador');
+$('#contador-display').reactive('contador').text();
+$('#contador-estado').reactive('contador').text();
                 </div>
             </div>
             
@@ -318,10 +318,10 @@ $('#contador-estado').reactiveText('contador');
                 </div>
                 <div class="code-example">
 // Binding bidireccional con jQuery:<br>
-$('#input-nombre').reactive('nombre');
-$('#nombre-span').reactiveText('nombre');
-$('#input-email').reactive('email');
-$('#email-span').reactiveText('email');
+$('#input-nombre').reactive('nombre').val();
+$('#nombre-span').reactive('nombre').text();
+$('#input-email').reactive('email').val();
+$('#email-span').reactive('email').text();
                 </div>
             </div>
             
@@ -346,7 +346,7 @@ $('#contenedor-tareas').reactive('tareas').list(renderTarea, {
                 key: 'id',
                 placeholder: '<p style="text-align: center; color: #718096;">No hay tareas</p>'
             });
-$('#total-tareas-span').reactiveText('totalTareas');
+$('#total-tareas-span').reactive('totalTareas').text();
                 </div>
             </div>
             
@@ -368,9 +368,9 @@ $('#total-tareas-span').reactiveText('totalTareas');
                 </div>
                 <div class="code-example">
 // Control de visibilidad con jQuery:<br>
-$('#elemento-toggleable').reactiveShow('visible');
-$('#elemento-oculto').reactiveHide('visible');
-$('#estado-visible').reactiveText('estadoVisible');
+$('#elemento-toggleable').reactive('visible').show();
+$('#elemento-oculto').reactive('visible').hide();
+$('#estado-visible').reactive('estadoVisible').text();
                 </div>
             </div>
             
@@ -391,8 +391,8 @@ $('#estado-visible').reactiveText('estadoVisible');
                 </div>
                 <div class="code-example">
 // CSS dinámico con jQuery:<br>
-$('#color-box-pura').reactiveCss('background-color', 'colorFondo');
-$('#color-nombre-span').reactiveText('colorNombre');
+$('#color-box-pura').reactive('colorFondo').css('background-color');
+$('#color-nombre-span').reactive('colorNombre').text();
                 </div>
             </div>
             
@@ -414,8 +414,8 @@ $('#color-nombre-span').reactiveText('colorNombre');
                 </div>
                 <div class="code-example">
 // Debugging con jQuery puro:<br>
-$('#debug-status-span').reactiveText('debugStatus');
-$('#consola-pura').reactiveHtml('consolaHtml');
+$('#debug-status-span').reactive('debugStatus').text();
+$('#consola-pura').reactive('consolaHtml').html();
                 </div>
             </div>
             
@@ -437,10 +437,10 @@ $('#consola-pura').reactiveHtml('consolaHtml');
                 </div>
                 <div class="code-example">
 // Múltiples bindings en el mismo elemento
-$('#input-multi-titulo').reactive('tituloCard');
-$('#card-titulo').reactiveText('tituloCard');
-$('#card-complejo').reactiveCss('background-color', 'fondoCard');
-$('#card-complejo').reactiveCss('color', 'colorTexto');</div>
+$('#input-multi-titulo').reactive('tituloCard').val();
+$('#card-titulo').reactive('tituloCard').text();
+$('#card-complejo').reactive('fondoCard').css('background-color');
+$('#card-complejo').reactive('colorTexto').css('color');</div>
             </div>
             
             <!-- Demo 8: Eventos y Animaciones jQuery -->
@@ -465,8 +465,8 @@ $('#card-complejo').reactiveCss('color', 'colorTexto');</div>
 <span id="contador-elementos"></span>
 
 // JavaScript
-$('#contenedor-animado').reactiveHtml('elementosHtml');
-$('#contador-elementos').reactiveText('totalElementos');
+$('#contenedor-animado').reactive('elementosHtml').html();
+$('#contador-elementos').reactive('totalElementos').text();
 
 function agregarElementoAnimado() {
   const n = $.state('totalElementos') + 1;
@@ -518,10 +518,10 @@ function removerElementoAnimado() {
 <div id="mensaje-validacion"></div>
 
 // JavaScript
-$('#nivel-input').reactive('nivel');
-$('#nivel-label').reactiveText('nivelLabel');
-$('#barra-progreso').reactiveCss('width', 'nivelPorcentaje');
-$('#mensaje-validacion').reactiveHtml('mensajeValidacion');
+$('#nivel-input').reactive('nivel').val();
+$('#nivel-label').reactive('nivelLabel').text();
+$('#barra-progreso').reactive('nivelPorcentaje').css('width');
+$('#mensaje-validacion').reactive('mensajeValidacion').html();
 
 $.watch('nivel', function(nuevo, anterior, key) {
   $.state('nivelLabel', 'Nivel: ' + nuevo);
@@ -563,6 +563,7 @@ $.watch(function(newVal, oldVal, key) {
                 tareas: [],
                 totalTareas: 0,
                 visible: true,
+                modoOscuro: false,
                 estadoVisible: 'Visible',
                 colorFondo: '#3498db',
                 colorNombre: 'Azul',
@@ -592,6 +593,12 @@ $.watch(function(newVal, oldVal, key) {
             
             $.watch('tareas', function(tareas) {
                 $.state('totalTareas', tareas ? tareas.length : 0);
+            });
+
+            // Watcher para modo oscuro: alterna clase en el elemento
+            $.watch('modoOscuro', function(activo) {
+                $('#elemento-toggleable').toggleClass('highlight', !activo);
+                $('#elemento-toggleable').toggleClass('reactive-element', true);
             });
 
             $.watch(function(newVal, oldVal, key) {
@@ -640,6 +647,7 @@ $.watch(function(newVal, oldVal, key) {
             $('#input-multi-titulo').reactive('tituloCard').val();
             $('#card-titulo').reactive('tituloCard').text();
             $('#card-complejo').reactive('fondoCard').css('background-color');
+            $('#input-multi-color').reactive('colorTexto').val();
             $('#card-complejo').reactive('colorTexto').css('color');
             
             // Demo 8: Animaciones
@@ -708,14 +716,7 @@ $.watch(function(newVal, oldVal, key) {
         }
         
         function toggleModoOscuro() {
-            const modoOscuro = $.state('modoOscuro');
-            $.state('modoOscuro', !modoOscuro);
-            
-            if (!modoOscuro) {
-                $('#elemento-toggleable').addClass('dark-mode');
-            } else {
-                $('#elemento-toggleable').removeClass('dark-mode');
-            }
+            $.state('modoOscuro', prev => !prev);
         }
         
         function cambiarColorPuro(color) {

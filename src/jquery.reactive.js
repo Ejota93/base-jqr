@@ -8,7 +8,7 @@
  * - Proveer un almacén de estado centralizado (clave-valor) con suscripciones.
  * - Renderizar automáticamente cambios en el DOM usando dos estilos:
  *   1) Atributos declarativos `st-*` (p.ej. `st-text="count"`, `st-css-color="color"`).
- *   2) API jQuery pura (p.ej. `$(el).reactiveText('count')`).
+ *   2) API jQuery pura (p.ej. `$(el).reactive('count').text()`).
  *
  * Dos formas de uso
  * 1) Atributos `st-*` (declarativo):
@@ -26,7 +26,7 @@
  *      <input id="countInput" type="number" />
  *    - JS:
  *      $.reactiveInit({ count: 0 })
- *      $('#counter').reactiveText('count')
+ *      $('#counter').reactive('count').text()
  *      $('#countInput').reactive('count') // two-way binding
  *
  * Conceptos clave
@@ -48,7 +48,7 @@
  *
  * Ejemplo completo (jQuery puro):
  *   $.reactiveInit({ msg: 'Hola' })
- *   $('#title').reactiveText('msg')
+ *   $('#title').reactive('msg').text()
  *   $.state('msg', 'Mundo') // actualiza #title
  */
 
@@ -653,17 +653,11 @@
         /**
          * @name reactive
          * @description
-         * Enlace reactivo principal. Devuelve un "binder" para encadenar el tipo de binding.
-         * - Si no se encadena, aplica un comportamiento por defecto:
-         *   - `input, textarea, select`: two-way binding con la propiedad `value`.
-         *   - Otros elementos: one-way binding con `textContent`.
+         * Enlace reactivo principal. Devuelve un "binder" encadenable para especificar explícitamente el tipo de binding.
+         * Siempre debes encadenar un método como `.text()`, `.html()`, `.val()`, `.css('<prop>')`, `.show()`, `.hide()`, `.enabled()`, `.disabled()`, `.attr('<name>')`, `.prop('<name>')`, `.data('<key>')` o `.list(templateFn, options)`.
          * @param {string} key La clave del estado a la que enlazar.
          * @returns {ReactiveBinder} Una instancia de ReactiveBinder para encadenar métodos (.text(), .html(), .css(), .list(), etc.).
          * @example
-         * // Comportamiento por defecto
-         * $('#mi-input').reactive('nombre'); // Two-way binding
-         * $('#mi-span').reactive('nombre');  // One-way binding a textContent
-         *
          * // Con binding explícito
          * $('#titulo').reactive('titulo').text();
          * $('#contenido').reactive('articulo').html();
