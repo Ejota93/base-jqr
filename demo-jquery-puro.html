@@ -342,7 +342,10 @@ $('#email-span').reactiveText('email');
                 </div>
                 <div class="code-example">
 // Crear elementos dinámicamente:<br>
-$('#contenedor-tareas').reactiveHtml('tareasHtml');
+$('#contenedor-tareas').reactive('tareas').list(renderTarea, { 
+                key: 'id',
+                placeholder: '<p style="text-align: center; color: #718096;">No hay tareas</p>'
+            });
 $('#total-tareas-span').reactiveText('totalTareas');
                 </div>
             </div>
@@ -558,7 +561,6 @@ $.watch(function(newVal, oldVal, key) {
                 email: 'No proporcionado',
                 edad: 'No especificada',
                 tareas: [],
-                tareasHtml: '<p style="text-align: center; color: #718096;">No hay tareas</p>',
                 totalTareas: 0,
                 visible: true,
                 estadoVisible: 'Visible',
@@ -588,41 +590,14 @@ $.watch(function(newVal, oldVal, key) {
                 $.state('mensajeValidacion', nuevo >= 70 ? '<span class="console-info">Alto nivel</span>' : '<span class="console-warn">Nivel medio/bajo</span>');
             });
             
+            $.watch('tareas', function(tareas) {
+                $.state('totalTareas', tareas ? tareas.length : 0);
+            });
+
             $.watch(function(newVal, oldVal, key) {
                 if (key === 'contador') {
                     $('#consola-pura').append('<div class="console-line console-info">Contador: ' + (oldVal ?? 0) + ' → ' + newVal + '</div>');
                 }
-            });
-            
-            // Watch de tareas: debe registrarse DESPUÉS de reactiveInit
-            $.watch('tareas', function(tareas, anterior) {
-                console.log('Tareas actualizadas:', tareas);
-                console.log('Tareas anteriores:', anterior);
-
-            //     $.state('tareasHtml', prevHtml => {
-            //         return tareas.length
-            //             ? tareas.map(t => `
-            //     <div class="task-item fade-in">
-            //         <span>${t.texto}</span>
-            //         <button onclick="eliminarTareaPura(${t.id})" class="btn-eliminar">❌</button>
-            //     </div>
-            // `).join('')
-            //             : '<p style="text-align: center; color: #718096;">No hay tareas</p>';
-            //     });
-
-
-                const html = tareas.map(tarea => `
-                    <div class="task-item fade-in">
-                        <span>${tarea.texto}</span>
-                        <button onclick="eliminarTareaPura(${tarea.id})" class="btn-eliminar">❌</button>
-                    </div>
-                `).join('');
-                
-                $.state({
-                    tareasHtml: html || '<p style="text-align: center; color: #718096;">No hay tareas</p>',
-                    totalTareas: tareas.length
-                });
-
             });
             
             console.log('✅ Demo inicializada con sintaxis jQuery pura');
@@ -630,47 +605,50 @@ $.watch(function(newVal, oldVal, key) {
         
         function configurarReactividad() {
             // Demo 1: Contador
-            $('#contador-display').reactive('contador');
-            $('#contador-estado').reactive('contador');
+            $('#contador-display').reactive('contador').text();
+            $('#contador-estado').reactive('contador').text();
             
-            // Demo 2: Formulario bidireccional
-            $('#input-nombre').reactive('nombre');
-            $('#nombre-span').reactive('nombre');
-            $('#input-email').reactive('email');
-            $('#email-span').reactive('email');
-            $('#input-edad').reactive('edad');
-            $('#edad-span').reactive('edad');
+            // Demo 2: Formulario con binding bidireccional
+            $('#input-nombre').reactive('nombre').val();
+            $('#nombre-span').reactive('nombre').text();
+            $('#input-email').reactive('email').val();
+            $('#email-span').reactive('email').text();
+            $('#input-edad').reactive('edad').val();
+            $('#edad-span').reactive('edad').text();
             
             // Demo 3: Lista de tareas
-            $('#contenedor-tareas').reactive('tareasHtml').html();
-            $('#total-tareas-span').reactive('totalTareas');
+            $('#contenedor-tareas').reactive('tareas').list(renderTarea, { 
+                key: 'id',
+                placeholder: '<p style="text-align: center; color: #718096;">No hay tareas</p>'
+            });
+            $('#total-tareas-span').reactive('totalTareas').text();
             
             // Demo 4: Toggle
             $('#elemento-toggleable').reactive('visible').show();
             $('#elemento-oculto').reactive('visible').hide();
-            $('#estado-visible').reactive('estadoVisible');
+            $('#estado-visible').reactive('estadoVisible').text();
             
             // Demo 5: Colores
             $('#color-box-pura').reactive('colorFondo').css('background-color');
-            $('#color-nombre-span').reactive('colorNombre');
+            $('#color-nombre-span').reactive('colorNombre').text();
             
             // Demo 6: Debug
-            $('#debug-status-span').reactive('debugStatus');
+            $('#debug-status-span').reactive('debugStatus').text();
             $('#consola-pura').reactive('consolaHtml').html();
             
             // Demo 7: Múltiples bindings
-            $('#input-multi-titulo').reactive('tituloCard');
-            $('#card-titulo').reactive('tituloCard');
+            $('#input-multi-titulo').reactive('tituloCard').val();
+            $('#card-titulo').reactive('tituloCard').text();
             $('#card-complejo').reactive('fondoCard').css('background-color');
             $('#card-complejo').reactive('colorTexto').css('color');
             
             // Demo 8: Animaciones
             $('#contenedor-animado').reactive('elementosHtml').html();
-            $('#contador-elementos').reactive('totalElementos');
+            $('#contador-elementos').reactive('totalElementos').text();
             
             // Demo 9: Watch (Observadores)
-            $('#nivel-input').reactive('nivel');
-            $('#nivel-label').reactive('nivelLabel');
+            $('#nivel-input').reactive('nivel').val();
+            $('#nivel-label').reactive('nivelLabel').text();
             $('#barra-progreso').reactive('nivelPorcentaje').css('width');
             $('#mensaje-validacion').reactive('mensajeValidacion').html();
         }
@@ -688,12 +666,21 @@ $.watch(function(newVal, oldVal, key) {
             $.state('contador', 0);
         }
         
+        function renderTarea(tarea) {
+            return `
+                <div class="task-item fade-in" data-id="${tarea.id}">
+                    <span>${tarea.texto}</span>
+                    <button onclick="eliminarTareaPura(${tarea.id})" class="btn-eliminar">❌</button>
+                </div>
+            `;
+        }
+
         function agregarTareaPura() {
             const tareaTexto = $('#input-nueva-tarea').val().trim();
             if (tareaTexto) {
-                // Usar updater functions para generar nueva referencia y disparar watch/render
                 const nueva = { id: Date.now(), texto: tareaTexto };
                 $.state('tareas', prev => [...(prev || []), nueva]);
+                $.state('totalTareas', prev => (prev || 0) + 1);
                 
                 $('#input-nueva-tarea').val('');
                 agregarMensajePura(`Tarea agregada: "${tareaTexto}"`, 'info');
@@ -704,10 +691,12 @@ $.watch(function(newVal, oldVal, key) {
         function eliminarTareaPura(id) {
             const tareas = $.state('tareas');
             const tarea = tareas.find(t => t.id === id);
-            const nuevasTareas = tareas.filter(t => t.id !== id);
             
-            $.state('tareas', nuevasTareas);
-            agregarMensajePura(`Tarea eliminada: "${tarea.texto}"`, 'warn');
+            if (tarea) {
+                $.state('tareas', prev => prev.filter(t => t.id !== id));
+                $.state('totalTareas', prev => prev - 1);
+                agregarMensajePura(`Tarea eliminada: "${tarea.texto}"`, 'warn');
+            }
         }
         
         function toggleElemento() {

@@ -95,6 +95,7 @@ Sin atributos en el HTML. Vinculas desde JavaScript usando métodos jQuery:
 - `$().reactiveHtml('clave')` → HTML
 - `$().reactiveCss(prop, 'clave')` → CSS
 - `$().reactiveShow('clave')` / `$().reactiveHide('clave')` → visibilidad
+- `$().reactive('clave').list(templateFn, options)` → renderizado eficiente de listas
 
 Ejemplo (Contador + Formulario):
 ```html
@@ -123,6 +124,55 @@ $('#input-email').reactive('email');
 $('#email-span').reactiveText('email');
 </script>
 ```
+
+---
+
+## Renderizado de Listas con `.list()`
+
+El método `.list()` es la forma más eficiente y recomendada para renderizar listas o colecciones de datos. En lugar de reemplazar todo el `innerHTML` en cada cambio (lo que es lento y destruye el estado de los elementos), `.list()` utiliza un algoritmo de "diffing" para calcular las diferencias entre el array de datos anterior y el nuevo, y aplica solo los cambios necesarios al DOM.
+
+**Sintaxis:**
+```javascript
+$('#container').reactive('myArray').list(templateFunction, { key: 'uniqueId' });
+```
+
+- `templateFunction`: una función que recibe un elemento del array y devuelve el string HTML para ese elemento.
+- `options.key`: el nombre de la propiedad en tus objetos de datos que sirve como un identificador único. Esto es **crucial** para que el algoritmo de diffing funcione correctamente.
+
+**Ejemplo (Lista de Tareas con `.list()`):**
+```html
+<!-- HTML -->
+<ul id="task-list"></ul>
+
+<!-- JavaScript -->
+<script>
+// 1. Inicializar el estado con un array vacío
+$.reactiveInit({ 
+  tareas: [
+    { id: 1, texto: 'Aprender jQuery Reactive' },
+    { id: 2, texto: 'Crear una demo increíble' }
+  ]
+});
+
+// 2. Definir la función de plantilla
+function renderTarea(tarea) {
+  return `<li data-id="${tarea.id}">${tarea.texto}</li>`;
+}
+
+// 3. Vincular el contenedor a la lista
+$('#task-list').reactive('tareas').list(renderTarea, { key: 'id' });
+
+// 4. Para añadir un elemento, simplemente actualiza el array
+function agregarTarea(texto) {
+  const nuevaTarea = { id: Date.now(), texto: texto };
+  $.state('tareas', prev => [...prev, nuevaTarea]);
+}
+</script>
+
+**Beneficios de usar `.list()`:**
+- **Rendimiento Óptimo:** Solo se tocan los elementos del DOM que realmente cambian.
+- **Mantenimiento de Estado:** Los elementos que no cambian conservan su estado (por ejemplo, si tienen animaciones CSS o eventos adjuntos).
+- **Código más Limpio:** No necesitas construir manualmente el HTML de la lista en un `watcher`.
 
 ---
 
@@ -434,6 +484,7 @@ Pasos:
 - `$.fn.reactiveHtml(key)`
 - `$.fn.reactiveCss(prop, key)`
 - `$.fn.reactiveShow(key)` / `$.fn.reactiveHide(key)`
+- `$.fn.reactive(key).list(templateFn, options)`
 
 ## Solución de Problemas
 
