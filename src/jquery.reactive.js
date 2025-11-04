@@ -89,7 +89,9 @@
             /** Timeout de batching (~60fps) para agrupar renders */
             batchTimeout: 16, // ~60fps
             /** Profundidad máxima de actualizaciones anidadas (protección) */
-            maxUpdateDepth: 100
+            maxUpdateDepth: 100,
+            /** Permite usar updater functions en $.state('key', prev => next) */
+            allowUpdaterFn: true
         },
         
         /**
@@ -475,12 +477,40 @@
             }
             
             if (typeof key === 'string' && arguments.length === 2) {
-                ReactiveState.setState(key, value);
+                // Soporte updater function: $.state('key', prev => next)
+                if (typeof value === 'function' && ReactiveState.config.allowUpdaterFn !== false) {
+                    try {
+                        const prev = ReactiveState.getState(key);
+                        const next = value(prev);
+                        ReactiveState.setState(key, next);
+                    } catch (err) {
+                        console.error('[ReactiveState] Error applying updater function for', key, err);
+                    }
+                } else {
+                    ReactiveState.setState(key, value);
+                }
                 return $;
             }
             
             if (typeof key === 'object') {
-                ReactiveState.setStates(key);
+                // Permitir funciones como valores en objetos: $.state({ k: prev => next, ... })
+                const updates = {};
+                try {
+                    Object.keys(key).forEach(function(k) {
+                        const v = key[k];
+                        if (typeof v === 'function' && ReactiveState.config.allowUpdaterFn !== false) {
+                            const prev = ReactiveState.getState(k);
+                            updates[k] = v(prev);
+                        } else {
+                            updates[k] = v;
+                        }
+                    });
+                    ReactiveState.setStates(updates);
+                } catch (err) {
+                    console.error('[ReactiveState] Error applying batch updates', err);
+                    // Fallback: aplicar como estaba para no romper
+                    ReactiveState.setStates(key);
+                }
                 return $;
             }
             

@@ -594,6 +594,37 @@ $.watch(function(newVal, oldVal, key) {
                 }
             });
             
+            // Watch de tareas: debe registrarse DESPUÉS de reactiveInit
+            $.watch('tareas', function(tareas, anterior) {
+                console.log('Tareas actualizadas:', tareas);
+                console.log('Tareas anteriores:', anterior);
+
+            //     $.state('tareasHtml', prevHtml => {
+            //         return tareas.length
+            //             ? tareas.map(t => `
+            //     <div class="task-item fade-in">
+            //         <span>${t.texto}</span>
+            //         <button onclick="eliminarTareaPura(${t.id})" class="btn-eliminar">❌</button>
+            //     </div>
+            // `).join('')
+            //             : '<p style="text-align: center; color: #718096;">No hay tareas</p>';
+            //     });
+
+
+                const html = tareas.map(tarea => `
+                    <div class="task-item">
+                        <span>${tarea.texto}</span>
+                        <button onclick="eliminarTareaPura(${tarea.id})" class="btn-eliminar">❌</button>
+                    </div>
+                `).join('');
+                
+                $.state({
+                    tareasHtml: html || '<p style="text-align: center; color: #718096;">No hay tareas</p>',
+                    totalTareas: tareas.length
+                });
+
+            });
+            
             console.log('✅ Demo inicializada con sintaxis jQuery pura');
         });
         
@@ -660,32 +691,15 @@ $.watch(function(newVal, oldVal, key) {
         function agregarTareaPura() {
             const tareaTexto = $('#input-nueva-tarea').val().trim();
             if (tareaTexto) {
-                const tareas = $.state('tareas');
-                tareas.push({
-                    id: Date.now(),
-                    texto: tareaTexto
-                });
+                // Usar updater functions para generar nueva referencia y disparar watch/render
+                const nueva = { id: Date.now(), texto: tareaTexto };
+                $.state('tareas', prev => [...(prev || []), nueva]);
                 
-                actualizarTareasPura();
                 $('#input-nueva-tarea').val('');
                 agregarMensajePura(`Tarea agregada: "${tareaTexto}"`, 'info');
             }
         }
-        
-        function actualizarTareasPura() {
-            const tareas = $.state('tareas');
-            const html = tareas.map(tarea => `
-                <div class="task-item fade-in">
-                    <span>${tarea.texto}</span>
-                    <button onclick="eliminarTareaPura(${tarea.id})" class="btn-eliminar">❌</button>
-                </div>
-            `).join('');
-            
-            $.state({
-                tareasHtml: html || '<p style="text-align: center; color: #718096;">No hay tareas</p>',
-                totalTareas: tareas.length
-            });
-        }
+
         
         function eliminarTareaPura(id) {
             const tareas = $.state('tareas');
@@ -693,7 +707,6 @@ $.watch(function(newVal, oldVal, key) {
             const nuevasTareas = tareas.filter(t => t.id !== id);
             
             $.state('tareas', nuevasTareas);
-            actualizarTareasPura();
             agregarMensajePura(`Tarea eliminada: "${tarea.texto}"`, 'warn');
         }
         

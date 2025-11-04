@@ -24,8 +24,29 @@ npm install jquery-reactive-state
 - `$.reactiveInit(initialState)`: inicializa el estado global.
 - `$.state(key?)`: obtiene todo el estado o una clave.
 - `$.state(key, value)` / `$.state(object)`: actualiza estado (uno o varios valores).
+- Soporte de updater functions: `$.state('clave', prev => next)` y `$.state({ clave: prev => next })`.
 - `$.watch(key, cb)` y `$.watch(cb)`: observa cambios de una clave o de todas.
 - Render: el DOM se actualiza automáticamente con batch updates; puedes forzar con `$.render(key?)`.
+
+---
+
+## Updater functions (prev => next)
+
+- Forma corta para calcular el nuevo valor a partir del anterior:
+  - Una clave: `$.state('contador', prev => prev + 1)`.
+  - Varias claves (mezcladas con valores directos): `$.state({ contador: p => p + 1, visible: true })`.
+- Compatibilidad: activado por defecto. Si antes guardabas funciones como valor de estado, puedes desactivar esta característica con `$.reactiveConfig({ allowUpdaterFn: false })`.
+- Nota importante: cuando uses `$.state({ ... })` con funciones en varias claves, cada función recibe el estado anterior de su propia clave. Si una clave depende del nuevo valor de otra dentro del mismo batch, calcula primero el valor externamente y pásalo como valor directo en el objeto.
+
+Ejemplo seguro (dependencias cruzadas):
+```javascript
+const nextTareas = [...$.state('tareas'), nueva];
+$.state({
+  tareas: nextTareas,
+  tareasHtml: nextTareas.map(x => `<li>${x}</li>`).join(''),
+  totalTareas: nextTareas.length
+});
+```
 
 ---
 
@@ -236,12 +257,11 @@ $('#total').reactiveText('totalTareas');
 function agregar() {
   const t = $('#nueva').val().trim();
   if (!t) return;
-  const arr = $.state('tareas');
-  arr.push(t);
+  const next = [...$.state('tareas'), t];
   $.state({
-    tareas: arr,
-    tareasHtml: arr.map(x => `<li>${x}</li>`).join(''),
-    totalTareas: arr.length
+    tareas: next,
+    tareasHtml: next.map(x => `<li>${x}</li>`).join(''),
+    totalTareas: next.length
   });
   $('#nueva').val('');
 }
@@ -305,12 +325,11 @@ $.reactiveInit({ tareas: [], tareasHtml: '', totalTareas: 0 });
 function agregarTarea() {
   const t = $('#nuevaTarea').val().trim();
   if (!t) return;
-  const arr = $.state('tareas');
-  arr.push(t);
+  const next = [...$.state('tareas'), t];
   $.state({
-    tareas: arr,
-    tareasHtml: arr.map(x => `<li>${x}</li>`).join(''),
-    totalTareas: arr.length
+    tareas: next,
+    tareasHtml: next.map(x => `<li>${x}</li>`).join(''),
+    totalTareas: next.length
   });
   $('#nuevaTarea').val('');
 }
@@ -334,12 +353,11 @@ $('#total').reactiveText('totalTareas');
 function agregarTarea() {
   const t = $('#nuevaTarea').val().trim();
   if (!t) return;
-  const arr = $.state('tareas');
-  arr.push(t);
+  const next = [...$.state('tareas'), t];
   $.state({
-    tareas: arr,
-    tareasHtml: arr.map(x => `<li>${x}</li>`).join(''),
-    totalTareas: arr.length
+    tareas: next,
+    tareasHtml: next.map(x => `<li>${x}</li>`).join(''),
+    totalTareas: next.length
   });
   $('#nuevaTarea').val('');
 }
@@ -405,8 +423,10 @@ Pasos:
 ### Global (`$`)
 - `$.reactiveInit(initialState)`
 - `$.state()` / `$.state(key)` / `$.state(key, value)` / `$.state(object)`
+- Updater functions: `$.state('key', prev => next)` y `$.state({ key: prev => next })`
 - `$.watch(key, cb)` / `$.watch(cb)`
 - `$.render(key?)`
+- `$.reactiveConfig(options)` / `$.reactiveReset()`
 
 ### Elementos (`$.fn`)
 - `$.fn.reactive(key)`
@@ -421,6 +441,7 @@ Pasos:
   - Verifica que la clave exista en `$.reactiveInit({ ... })`.
   - Usa `console.log($.state())` para inspeccionar.
   - Forza render con `$.render('clave')`.
+  - Si trabajas con arrays u objetos, recuerda usar una nueva referencia (por ejemplo, spread `[...]` o `{...}`); las mutaciones in-place no disparan renders.
 
 - `$.watch` no reacciona:
   - Asegúrate de usar `$.state('clave', valor)` para actualizar.
@@ -429,6 +450,7 @@ Pasos:
 ## Compatibilidad
 - jQuery 3.7+
 - Navegadores modernos
+- Updater functions activadas por defecto. Si necesitas guardar funciones como valor de estado, desactiva con `$.reactiveConfig({ allowUpdaterFn: false })`.
 
 ## Licencia
 MIT
