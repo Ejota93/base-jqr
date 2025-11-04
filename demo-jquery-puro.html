@@ -453,7 +453,6 @@ $('#card-complejo').reactive('colorTexto').css('color');</div>
                         <button class="btn" onclick="animarContador()">🎭 Animar Contador</button>
                     </div>
                     <div id="contenedor-animado" style="min-height: 100px; border: 2px dashed #e2e8f0; border-radius: 8px; padding: 15px;">
-                        <p style="text-align: center; color: #718096;">Los elementos aparecerán aquí</p>
                     </div>
                     <div class="state-display">
                         Elementos: <span id="contador-elementos">0</span>
@@ -572,7 +571,7 @@ $.watch(function(newVal, oldVal, key) {
                 tituloCard: 'Título del Card',
                 fondoCard: '#3498db',
                 colorTexto: '#ffffff',
-                elementosHtml: '<p style="text-align: center; color: #718096;">Los elementos aparecerán aquí</p>',
+                elementosHtml: [],
                 totalElementos: 0,
                 // Estados para demo de watch
                 nivel: 25,
@@ -651,7 +650,16 @@ $.watch(function(newVal, oldVal, key) {
             $('#card-complejo').reactive('colorTexto').css('color');
             
             // Demo 8: Animaciones
-            $('#contenedor-animado').reactive('elementosHtml').html();
+            $('#contenedor-animado').reactive('elementosHtml').list(function(elemento) {
+                return `
+                    <div class="reactive-element fade-in" style="background: #68d391; color: white; margin: 5px 0; padding: 10px; border-radius: 8px;">
+                        ✨ Elemento #${elemento.texto} agregado dinámicamente
+                    </div>
+                `;
+            }, { 
+                key: 'id',
+                placeholder: '<p style="text-align: center; color: #718096;">Los elementos aparecerán aquí</p>'
+            });
             $('#contador-elementos').reactive('totalElementos').text();
             
             // Demo 9: Watch (Observadores)
@@ -688,7 +696,6 @@ $.watch(function(newVal, oldVal, key) {
             if (tareaTexto) {
                 const nueva = { id: Date.now(), texto: tareaTexto };
                 $.state('tareas', prev => [...(prev || []), nueva]);
-                $.state('totalTareas', prev => (prev || 0) + 1);
                 
                 $('#input-nueva-tarea').val('');
                 agregarMensajePura(`Tarea agregada: "${tareaTexto}"`, 'info');
@@ -702,7 +709,6 @@ $.watch(function(newVal, oldVal, key) {
             
             if (tarea) {
                 $.state('tareas', prev => prev.filter(t => t.id !== id));
-                $.state('totalTareas', prev => prev - 1);
                 agregarMensajePura(`Tarea eliminada: "${tarea.texto}"`, 'warn');
             }
         }
@@ -773,37 +779,36 @@ $.watch(function(newVal, oldVal, key) {
         
         function agregarElementoAnimado() {
             const elementos = $.state('totalElementos') + 1;
-            const html = `
-                <div class="reactive-element fade-in" style="background: #68d391; color: white; margin: 5px 0; padding: 10px; border-radius: 8px;">
-                    ✨ Elemento #${elementos} agregado dinámicamente
-                </div>
-            `;
-            
-            const htmlActual = $('#contenedor-animado').html();
-            if (htmlActual.includes('Los elementos aparecerán aquí')) {
-                $.state('elementosHtml', html);
-            } else {
-                $.state('elementosHtml', htmlActual + html);
-            }
+
+            const nueva = { id: Date.now(), texto: elementos };
+
+            $.state('elementosHtml', prev => [...(prev || []), nueva]);
             
             $.state('totalElementos', elementos);
             agregarMensajePura(`Elemento animado agregado (#${elementos})`, 'info');
         }
         
         function removerElementoAnimado() {
-            const $elementos = $('#contenedor-animado').children('.reactive-element');
-            if ($elementos.length > 0) {
-                $elementos.last().slideUp(300, function() {
-                    $(this).remove();
-                    const total = $.state('totalElementos') - 1;
-                    $.state('totalElementos', total);
-                    
-                    if (total === 0) {
-                        $.state('elementosHtml', '<p style="text-align: center; color: #718096;">Los elementos aparecerán aquí</p>');
-                    }
-                });
-                agregarMensajePura('Elemento removido con animación', 'warn');
-            }
+
+            //Elimindo el ultimo elemento del estado
+            $.state('elementosHtml', prev => {
+
+                if(prev.length > 0){
+
+                    $.state('totalElementos', (prev) => {
+                        const total = prev - 1;
+                        return total
+                    });
+
+                    agregarMensajePura('Elemento removido con animación', 'warn');
+
+                    return prev.slice(0, -1);
+                }
+
+                return prev;
+                
+            });
+         
         }
         
         function animarContador() {

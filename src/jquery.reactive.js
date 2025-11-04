@@ -830,18 +830,28 @@
          */
         list(templateFunction, options = {}) {
             const keyField = options.key;
+            const placeholderHtml = options.placeholder;
+            const placeholderAttr = 'data-reactive-placeholder';
             const $container = this.$el;
             const stateKey = this.key;
-            const keyAttribute = 'data-reactive-key';
+            const keyAttribute = 'data-jreact-key';
 
             const renderList = (newArray) => {
-                if (!Array.isArray(newArray)) {
-                    if (newArray !== undefined && newArray !== null) {
-                        console.warn(`[ReactiveState] List rendering for '${stateKey}' received a non-array value. Container will be cleared.`, newArray);
+                // Si no es un array o es vacío, mostrar placeholder si está definido
+                if (!Array.isArray(newArray) || newArray.length === 0) {
+                    if (!Array.isArray(newArray) && newArray !== undefined && newArray !== null) {
+                        console.warn(`[ReactiveState] List rendering for '${stateKey}' received a non-array value.`, newArray);
                     }
                     $container.empty();
+                    if (placeholderHtml) {
+                        const $ph = $(placeholderHtml).attr(placeholderAttr, 'true');
+                        $container.append($ph);
+                    }
                     return;
                 }
+
+                // Remover placeholder si existe al tener elementos
+                $container.children(`[${placeholderAttr}]`).remove();
 
                 const oldElementsMap = new Map();
                 $container.children().each(function() {
@@ -909,11 +919,8 @@
             subscriptions.push(unsubscribe);
             this.$el.data('reactive-subscriptions', subscriptions);
 
-            if (Array.isArray(initialValue)) {
-                renderList(initialValue);
-            } else if (initialValue !== undefined && initialValue !== null) {
-                 console.warn(`[ReactiveState] Initial value for list '${stateKey}' is not an array.`, initialValue);
-            }
+            // Render inicial (incluye placeholder si corresponde)
+            renderList(initialValue);
 
             return this.$el;
         }
