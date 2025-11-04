@@ -612,7 +612,7 @@ $.watch(function(newVal, oldVal, key) {
 
 
                 const html = tareas.map(tarea => `
-                    <div class="task-item">
+                    <div class="task-item fade-in">
                         <span>${tarea.texto}</span>
                         <button onclick="eliminarTareaPura(${tarea.id})" class="btn-eliminar">❌</button>
                     </div>
@@ -630,49 +630,49 @@ $.watch(function(newVal, oldVal, key) {
         
         function configurarReactividad() {
             // Demo 1: Contador
-            $('#contador-display').reactiveText('contador');
-            $('#contador-estado').reactiveText('contador');
+            $('#contador-display').reactive('contador');
+            $('#contador-estado').reactive('contador');
             
             // Demo 2: Formulario bidireccional
             $('#input-nombre').reactive('nombre');
-            $('#nombre-span').reactiveText('nombre');
+            $('#nombre-span').reactive('nombre');
             $('#input-email').reactive('email');
-            $('#email-span').reactiveText('email');
+            $('#email-span').reactive('email');
             $('#input-edad').reactive('edad');
-            $('#edad-span').reactiveText('edad');
+            $('#edad-span').reactive('edad');
             
             // Demo 3: Lista de tareas
-            $('#contenedor-tareas').reactiveHtml('tareasHtml');
-            $('#total-tareas-span').reactiveText('totalTareas');
+            $('#contenedor-tareas').reactive('tareasHtml').html();
+            $('#total-tareas-span').reactive('totalTareas');
             
             // Demo 4: Toggle
-            $('#elemento-toggleable').reactiveShow('visible');
-            $('#elemento-oculto').reactiveHide('visible');
-            $('#estado-visible').reactiveText('estadoVisible');
+            $('#elemento-toggleable').reactive('visible').show();
+            $('#elemento-oculto').reactive('visible').hide();
+            $('#estado-visible').reactive('estadoVisible');
             
             // Demo 5: Colores
-            $('#color-box-pura').reactiveCss('background-color', 'colorFondo');
-            $('#color-nombre-span').reactiveText('colorNombre');
+            $('#color-box-pura').reactive('colorFondo').css('background-color');
+            $('#color-nombre-span').reactive('colorNombre');
             
             // Demo 6: Debug
-            $('#debug-status-span').reactiveText('debugStatus');
-            $('#consola-pura').reactiveHtml('consolaHtml');
+            $('#debug-status-span').reactive('debugStatus');
+            $('#consola-pura').reactive('consolaHtml').html();
             
             // Demo 7: Múltiples bindings
             $('#input-multi-titulo').reactive('tituloCard');
-            $('#card-titulo').reactiveText('tituloCard');
-            $('#card-complejo').reactiveCss('background-color', 'fondoCard');
-            $('#card-complejo').reactiveCss('color', 'colorTexto');
+            $('#card-titulo').reactive('tituloCard');
+            $('#card-complejo').reactive('fondoCard').css('background-color');
+            $('#card-complejo').reactive('colorTexto').css('color');
             
             // Demo 8: Animaciones
-            $('#contenedor-animado').reactiveHtml('elementosHtml');
-            $('#contador-elementos').reactiveText('totalElementos');
+            $('#contenedor-animado').reactive('elementosHtml').html();
+            $('#contador-elementos').reactive('totalElementos');
             
             // Demo 9: Watch (Observadores)
             $('#nivel-input').reactive('nivel');
-            $('#nivel-label').reactiveText('nivelLabel');
-            $('#barra-progreso').reactiveCss('width', 'nivelPorcentaje');
-            $('#mensaje-validacion').reactiveHtml('mensajeValidacion');
+            $('#nivel-label').reactive('nivelLabel');
+            $('#barra-progreso').reactive('nivelPorcentaje').css('width');
+            $('#mensaje-validacion').reactive('mensajeValidacion').html();
         }
         
         // Funciones de control

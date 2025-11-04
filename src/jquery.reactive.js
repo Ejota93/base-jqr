@@ -683,25 +683,52 @@
         /**
          * Enlace de texto (solo lectura) vía jQuery.
          * @param {string} key
+         * @deprecated Usar `$(el).reactive(key).text()` en su lugar.
          */
-        reactiveText: function(key) {
-            return this.each(function() {
-                const $el = $(this);
-                const initial = ReactiveState.getState(key);
-                if (initial !== undefined) {
-                    $el.text(initial);
-                }
-                ReactiveState.subscribe(key, function(newVal) {
-                    $el.text(newVal);
+        reactive: function(key) {
+            const $el = this;
+
+            // Comportamiento por defecto
+            if ($el.is('input, textarea, select')) {
+                // Two-way binding para elementos de formulario
+                $el.each(function() {
+                    const $input = $(this);
+                    const initial = ReactiveState.getState(key);
+                    if (initial !== undefined) {
+                        $input.val(initial);
+                    }
+                    $input.on('input change', function() {
+                        ReactiveState.setState(key, $input.val());
+                    });
+                    ReactiveState.subscribe(key, function(newVal) {
+                        $input.val(newVal);
+                    });
                 });
-            });
+            } else {
+                // One-way binding al texto para otros elementos
+                $el.each(function() {
+                    const $element = $(this);
+                    const initial = ReactiveState.getState(key);
+                    if (initial !== undefined) {
+                        $element.text(initial);
+                    }
+                    ReactiveState.subscribe(key, function(newVal) {
+                        $element.text(newVal);
+                    });
+                });
+            }
+
+            // Devolver el binder para encadenar
+            return new ReactiveBinder($el, key);
         },
-        
+
         /**
          * Enlace de HTML (solo lectura) vía jQuery.
          * @param {string} key
+         * @deprecated Usar `$(el).reactive(key).html()` en su lugar.
          */
         reactiveHtml: function(key) {
+            console.warn('[ReactiveState] reactiveHtml() está obsoleto. Usa $(el).reactive(key).html() en su lugar.');
             return this.each(function() {
                 const $el = $(this);
                 const initial = ReactiveState.getState(key);
@@ -718,8 +745,10 @@
          * Enlace de CSS (propiedad específica) vía jQuery.
          * @param {string} property Propiedad CSS (p.ej. 'color').
          * @param {string} key Clave.
+         * @deprecated Usar `$(el).reactive(key).css(prop)` en su lugar.
          */
         reactiveCss: function(property, key) {
+            console.warn('[ReactiveState] reactiveCss() está obsoleto. Usa $(el).reactive(key).css(prop) en su lugar.');
             return this.each(function() {
                 const $el = $(this);
                 const initial = ReactiveState.getState(key);
@@ -735,8 +764,10 @@
         /**
          * Muestra/oculta según truthiness del estado (mostrar cuando true).
          * @param {string} key
+         * @deprecated Usar `$(el).reactive(key).show()` en su lugar.
          */
         reactiveShow: function(key) {
+            console.warn('[ReactiveState] reactiveShow() está obsoleto. Usa $(el).reactive(key).show() en su lugar.');
             return this.each(function() {
                 const $el = $(this);
                 const initial = ReactiveState.getState(key);
@@ -750,8 +781,10 @@
         /**
          * Muestra/oculta según truthiness del estado (ocultar cuando true).
          * @param {string} key
+         * @deprecated Usar `$(el).reactive(key).hide()` en su lugar.
          */
         reactiveHide: function(key) {
+            console.warn('[ReactiveState] reactiveHide() está obsoleto. Usa $(el).reactive(key).hide() en su lugar.');
             return this.each(function() {
                 const $el = $(this);
                 const initial = ReactiveState.getState(key);
@@ -762,6 +795,77 @@
             });
         }
     });
+
+    /**
+     * Clase ReactiveBinder: proporciona la API fluida.
+     * @param {jQuery} $el Elemento jQuery.
+     * @param {string} key Clave de estado.
+     */
+    function ReactiveBinder($el, key) {
+        this.$el = $el;
+        this.key = key;
+    }
+
+    ReactiveBinder.prototype = {
+        _bind: function(updateFn) {
+            const initial = ReactiveState.getState(this.key);
+            if (initial !== undefined) {
+                this.$el.each(function() {
+                    updateFn($(this), initial);
+                });
+            }
+            ReactiveState.subscribe(this.key, (newVal) => {
+                this.$el.each(function() {
+                    updateFn($(this), newVal);
+                });
+            });
+            return this.$el; // Devuelve el elemento jQuery para seguir encadenando
+        },
+
+        text: function() {
+            return this._bind(($el, val) => $el.text(val));
+        },
+
+        html: function() {
+            return this._bind(($el, val) => $el.html(val));
+        },
+
+        val: function() {
+            return this._bind(($el, val) => $el.val(val));
+        },
+
+        show: function() {
+            return this._bind(($el, val) => $el.toggle(!!val));
+        },
+
+        hide: function() {
+            return this._bind(($el, val) => $el.toggle(!val));
+        },
+
+        enabled: function() {
+            return this._bind(($el, val) => $el.prop('disabled', !val));
+        },
+
+        disabled: function() {
+            return this._bind(($el, val) => $el.prop('disabled', !!val));
+        },
+
+        css: function(property) {
+            return this._bind(($el, val) => $el.css(property, val));
+        },
+
+        attr: function(attributeName) {
+            return this._bind(($el, val) => $el.attr(attributeName, val));
+        },
+
+        prop: function(propertyName) {
+            return this._bind(($el, val) => $el.prop(propertyName, val));
+        },
+
+        class: function() {
+            return this._bind(($el, val) => $el.attr('class', val));
+        }
+    };
 
     // Auto-initialize on document ready
     $(document).ready(function() {
