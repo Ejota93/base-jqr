@@ -344,6 +344,7 @@ class ReactiveBinder {
         this.$el = $el;
         this.key = key;
         this._unsubscribers = [];
+        this._domEvents = [];
         // guardar referencia para potencial unbind externo
         this.$el.data('reactive-binder', this);
     }
@@ -370,6 +371,12 @@ class ReactiveBinder {
         // cancelar subscripciones y eventos
         this._unsubscribers.forEach(fn => { try { fn(); } catch (_) {} });
         this._unsubscribers = [];
+        // quitar eventos registrados mediante binder.on
+        this._domEvents.forEach(({ event, handler }) => {
+            try { this.$el.off(`${event}.reactive`, handler); } catch (_) {}
+        });
+        this._domEvents = [];
+        // quitar two-way de val()
         this.$el.off('input.reactive change.reactive');
         return this.$el;
     }
@@ -448,6 +455,35 @@ class ReactiveBinder {
     list(render, options = {}) {
         // delega en la implementación existente de $.fn.list
         this.$el.list(this.key, render, options);
+        return this;
+    }
+
+    /**
+     * Adjunta eventos al elemento con opciones ergonómicas.
+     * opts: { prevent, stop, once }
+     * Soporta múltiples eventos separados por espacios o array.
+     */
+    on(events, handler, opts = {}) {
+        const evts = Array.isArray(events) ? events : String(events).split(/\s+/).filter(Boolean);
+        const { prevent = false, stop = false, once = false } = opts;
+        evts.forEach((evt) => {
+            const namespaced = `${evt}.reactive`;
+            const wrapper = (e, ...args) => {
+                if (prevent) e.preventDefault();
+                if (stop) e.stopPropagation();
+                try {
+                    handler.call(this.$el[0], e, ...args);
+                } finally {
+                    if (once) {
+                        try { this.$el.off(namespaced, wrapper); } catch (_) {}
+                        // retirar de registro local
+                        this._domEvents = this._domEvents.filter(d => !(d.event === evt && d.handler === wrapper));
+                    }
+                }
+            };
+            this.$el.on(namespaced, wrapper);
+            this._domEvents.push({ event: evt, handler: wrapper });
+        });
         return this;
     }
 }

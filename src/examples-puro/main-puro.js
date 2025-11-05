@@ -6,6 +6,7 @@ import { initToggle } from './toggle.js';
 import { initColors } from './colors.js';
 import { initConsole } from './console.js';
 import { initNamespaces } from './namespaces.js';
+import { initEventsOn } from './events-on.js';
 
 window.$ = $;
 
@@ -36,6 +37,7 @@ $(function() {
     initColors();
     initConsole();
     initNamespaces();
+    initEventsOn();
 
     // Watchers globales
     $.watch('tareas', function(tareas) {

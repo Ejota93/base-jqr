@@ -311,6 +311,30 @@ $('#ns-nombre-span').reactive(perfil.k('nombre')).text();
                     </div>
                 </div>
             </div>
+
+            <!-- Demo 8: Eventos con binder.on() -->
+            <div class="card">
+                <h2 class="card-title">8. Eventos con binder.on()</h2>
+                <div class="card-content">
+                    <div id="on-demo-display" class="reactive-element">0</div>
+                    <div class="btn-group">
+                        <button id="on-demo-inc" class="btn">Incrementar (prevent)</button>
+                        <button id="on-demo-dec" class="btn btn-secondary">Decrementar (prevent)</button>
+                        <button id="on-demo-reset" class="btn btn-tertiary">Resetear (once)</button>
+                    </div>
+                    <div class="state-display">
+                        Estado (onDemo.contador): <span id="on-demo-state">0</span>
+                    </div>
+                    <div class="code-example">
+<pre>
+$('#on-demo-inc').reactive('onDemo.contador')
+  .on('click', () => $.state('onDemo.contador', c => c + 1), { prevent: true });
+$('#on-demo-reset').reactive('onDemo.contador')
+  .on('click', () => $.state('onDemo.contador', 0), { prevent: true, once: true });
+</pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">

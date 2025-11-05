@@ -444,6 +444,9 @@ Pasos:
 - `$.watch(key, cb)` / `$.watch(cb)`
 - `$.render(key?)`
 - `$.reactiveConfig(options)` / `$.reactiveReset()`
+- `$.ensure(defaults, { silent })` → establece valores por defecto solo si la clave no existe. Por defecto es silencioso (`silent: true`).
+- `$.ensureNS(prefix, defaults, { silent, sep })` → igual que `ensure` pero aplicando prefijo/namespace a cada clave. `sep` (separador) por defecto es `'.'`.
+- `$.namespace(prefix, { sep })` → helper para trabajar cómodamente con claves namespaced. Devuelve utilidades: `k(key)`, `ensure(defs, { silent })`, `get(key)`, `set(key, value|fn)`, `watch(key, cb)`, `state(key, value|fn)`.
 
 #### Configuración (`$.reactiveConfig`)
 - `prefix` (string, por defecto `st-`): prefijo de atributos declarativos.
@@ -465,6 +468,7 @@ Pasos:
 - `$(el).reactive('key').enabled()` / `$(el).reactive('key').disabled()`
 - `$(el).reactive('key').attr('<name>')` / `$(el).reactive('key').prop('<name>')` / `$(el).reactive('key').data('<key>')`
 - `$(el).reactive('lista').list(templateFn, options)`
+- `$(el).reactive('key').on(events, handler, { prevent, stop, once })` → adjunta eventos al elemento con opciones ergonómicas. `events` puede ser string separado por espacios o un array.
 
 Nota: Los métodos legacy `reactiveText/reactiveHtml/reactiveCss/reactiveShow/reactiveHide` siguen disponibles pero están obsoletos. Usa el binder encadenable `$(el).reactive(key).…` para todas las vinculaciones.
 
@@ -490,3 +494,172 @@ La versión ES6 expone el singleton como `$.ReactiveState` para inspección avan
 
 ## Licencia
 MIT
+
+---
+
+# Namespaces y valores por defecto (ensure/ensureNS/namespace)
+
+La librería incluye utilidades para trabajar con nombres de clave con prefijo (namespaces) y para fijar valores por defecto sin sobrescribir claves ya existentes.
+
+## $.ensure(defaults, { silent })
+
+Establece valores por defecto solo si la clave aún no existe en el estado. Útil para inicializaciones idempotentes.
+
+```javascript
+// No sobrescribe si 'nombre' ya existe
+$.ensure({ nombre: 'Invitado', email: '' });
+
+// Si quieres que además dispare render/observadores, pasa silent: false
+$.ensure({ nombre: 'Invitado' }, { silent: false });
+```
+
+## $.ensureNS(prefix, defaults, { silent, sep })
+
+Igual que `ensure`, pero aplicando un prefijo a cada clave. Por defecto usa `.` como separador.
+
+```javascript
+$.ensureNS('perfil', { nombre: 'Invitado', edad: 0 });
+$.ensureNS('ui', { tema: 'light' }, { sep: ':', silent: false });
+```
+
+## $.namespace(prefix, { sep })
+
+Devuelve un objeto helper para trabajar con un namespace de forma cómoda y segura.
+
+```javascript
+const perfil = $.namespace('perfil');
+
+// Genera la clave completa: 'perfil.nombre'
+perfil.k('nombre'); // => 'perfil.nombre'
+
+// Asegura defaults dentro del namespace (por defecto, silencioso)
+perfil.ensure({ nombre: 'Invitado' });
+
+// Leer y escribir dentro del namespace
+const nombre = perfil.get('nombre');
+perfil.set('nombre', prev => (prev || '').trim());
+
+// Observar cambios de una clave del namespace
+perfil.watch('nombre', (nuevo, anterior) => console.log('Perfil.nombre:', anterior, '→', nuevo));
+
+// Alias directo: perfil.state('nombre', 'Juan')
+```
+
+### Mostrar valores por defecto en la UI
+
+Ten en cuenta que `ensure` es silencioso por defecto, lo que significa que no dispara suscripciones ni programa un render del DOM. Si estás usando el estilo declarativo (atributos `st-*`), y quieres ver el valor por defecto en el primer render:
+
+- Pasa `{ silent: false }` al `ensure`: `perfil.ensure({ nombre: 'Invitado' }, { silent: false });`, o
+- Fuerza un render explícito: `$.render(perfil.k('nombre'));`, o
+- Usa binding imperativo para el render inicial: `$('#span').reactive(perfil.k('nombre')).text();`
+
+En el estilo imperativo, el método `.text()`/`.val()` lee el valor actual del estado y lo aplica inmediatamente, por lo que verás "Invitado" desde el primer render incluso si `ensure` fue silencioso.
+
+### Atributos con claves que incluyen '.'
+
+El selector corto `[st-<clave>="<directiva>"]` requiere que el nombre del atributo sea un identificador HTML válido. Si tu clave incluye un punto (por ejemplo `perfil.nombre`), evita el estilo corto `<span st-perfil.nombre="text">` y usa las directivas específicas, por ejemplo `st-text="perfil.nombre"`, o el binding imperativo desde JavaScript.
+
+---
+
+# API de eventos: binder.on(events, handler, opts)
+
+Se incorporó `ReactiveBinder.on` para adjuntar eventos al elemento de forma encadenable y ergonómica.
+
+Firma:
+
+```javascript
+$(el).reactive('clave').on(events, handler, opts)
+// events: string separado por espacios ("click keyup") o array (["click", "keyup"])
+// handler: function(e, ...args) { /* this === elemento DOM */ }
+// opts: { prevent?: boolean, stop?: boolean, once?: boolean }
+```
+
+Características:
+- Múltiples eventos por llamada (string o array).
+- Opciones prácticas:
+  - `prevent`: llama `e.preventDefault()` automáticamente.
+  - `stop`: llama `e.stopPropagation()` automáticamente.
+  - `once`: auto-desuscribe el handler después de la primera invocación.
+- Limpieza automática: todos los eventos registrados mediante `.on()` se eliminan cuando invocas `.unbind()` del binder.
+- Encadenable: puedes combinar `.on()` con `.text()`, `.val()`, etc.
+
+### Ejemplo básico (contador)
+
+```html
+<div>
+  <span id="on-out">0</span>
+  <button id="on-inc">+</button>
+  <button id="on-dec">-</button>
+  <button id="on-reset">Reset</button>
+  <span id="on-state"></span>
+  
+</div>
+
+<script>
+$.reactiveInit({ 'onDemo.contador': 0 });
+
+$('#on-out').reactive('onDemo.contador').text();
+$('#on-state').reactive('onDemo.contador').text();
+
+// Incrementa con preventDefault
+$('#on-inc')
+  .reactive('onDemo.contador')
+  .on('click', (e) => $.state('onDemo.contador', prev => prev + 1), { prevent: true });
+
+// Decrementa con stopPropagation
+$('#on-dec')
+  .reactive('onDemo.contador')
+  .on('click', () => $.state('onDemo.contador', prev => prev - 1), { stop: true });
+
+// Reset solo una vez (once)
+$('#on-reset')
+  .reactive('onDemo.contador')
+  .on('click', () => $.state('onDemo.contador', 0), { once: true });
+</script>
+```
+
+### Varios eventos a la vez
+
+```javascript
+$('#input-buscar')
+  .reactive('filtro')
+  .val() // two-way binding
+  .on('input keyup', (e) => {
+    // Normaliza espacios y aplica al estado
+    const texto = e.target.value.trim();
+    $.state('filtro', texto);
+  }, { prevent: true });
+```
+
+### Limpieza
+
+Cuando ya no necesites el binding (por ejemplo, al destruir un componente), invoca:
+
+```javascript
+const binder = $('#btn').reactive('alguna.clave').on('click', handler);
+
+// ...más tarde
+binder.unbind(); // cancela suscripciones y quita los eventos registrados con .on()
+```
+
+---
+
+## Ejemplo modular "8. Eventos con binder.on()"
+
+La demo ES6 pura incluye un ejemplo modular que puedes consultar en:
+- HTML: `demo-es6-puro.html` (tarjeta "Ejemplo 8")
+- JS: `src/examples-puro/events-on.js`
+
+Ahí verás un contador `onDemo.contador` con botones que usan `.on()` junto a `.text()` y `.val()` para reflejar el estado y manejar interacciones con `prevent` y `once`.
+
+---
+
+## Buenas prácticas de rendimiento con listas grandes
+
+Si vas a manejar listas de miles de elementos (por ejemplo, 10.000 clientes):
+- Usa `$(el).reactive('lista').list(templateFn, { key: 'id' })` para diff incremental.
+- Carga inicial silenciosa (por ejemplo con `$.ensure`) y luego aplica bindings.
+- Mantén claves estables (`key: 'id'`) para minimizar re-creaciones de nodos.
+- Considera paginación o virtualización si la lista es interactiva.
+- Agrupa cambios en lote con `$.state({ ... })`.
+- Para claves con `.`, evita el estilo corto `[st-<clave>]` y usa `st-text="namespace.clave"` o el binding imperativo.
