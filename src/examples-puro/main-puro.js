@@ -8,7 +8,7 @@ import { initConsole } from './console.js';
 
 window.$ = $;
 
-$(document).ready(function() {
+$(function() {
     console.log('🚀 Iniciando demo con sintaxis ES6 y módulos...');
     
     // Inicializar estados

@@ -536,7 +536,7 @@ $.ReactiveState = reactiveState;
  * - Emite `state:update` para cada cambio (útil en demos y depuración).
  * - Two-way automático para inputs con `[st-value]` sin necesidad de código imperativo.
  */
-$(document).ready(function() {
+$(function() {
     // Auto-initialize with empty state for parity with original
     reactiveState.init();
     // Evento personalizado para actualizaciones: $(document).trigger('state:update', ['key', value])
