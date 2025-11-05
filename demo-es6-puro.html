@@ -291,6 +291,26 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Demo 7: Uso de Namespaces -->
+            <div class="card">
+                <h2 class="card-title">7. Uso de Namespaces</h2>
+                <div class="card-content">
+                    <p>Inicialización modular de estado con prefijo/namespace para evitar colisiones.</p>
+                    <input type="text" id="ns-input-nombre" placeholder="Nombre (perfil.nombre)">
+                    <div class="state-display">
+                        Perfil.nombre: <span id="ns-nombre-span"></span>
+                    </div>
+                    <div class="code-example">
+<pre>
+const perfil = $.namespace('perfil');
+perfil.ensure({ nombre: 'Invitado' });
+$('#ns-input-nombre').reactive(perfil.k('nombre')).val();
+$('#ns-nombre-span').reactive(perfil.k('nombre')).text();
+</pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">

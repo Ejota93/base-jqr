@@ -216,13 +216,17 @@ class ReactiveState {
         const prefix = this.config.prefix;
 
         // Estilo: atributo específico por clave (p.ej. <span st-count="text">)
-        $(`[${prefix}${key}]`).each(function() {
-            const $el = $(this);
-            const attr = $el.attr(`${prefix}${key}`);
-            if (attr) {
-                applyDirective($el, attr, value);
-            }
-        });
+        // Evitar claves con caracteres no válidos (p.ej. nombres con '.') que rompen el selector
+        const attrName = `${prefix}${key}`;
+        if (isSafeAttrName(attrName)) {
+            $(`[${attrName}]`).each(function() {
+                const $el = $(this);
+                const attr = $el.attr(attrName);
+                if (attr) {
+                    applyDirective($el, attr, value);
+                }
+            });
+        }
 
         // Selector para atributos específicos como `st-text="count"`
         const specificAttrSelector = `[${prefix}text="${key}"], [${prefix}html="${key}"], [${prefix}value="${key}"], [${prefix}class="${key}"], [${prefix}show="${key}"], [${prefix}hide="${key}"], [${prefix}enabled="${key}"], [${prefix}disabled="${key}"]`;
@@ -319,6 +323,14 @@ function applyDirective($el, directive, value) {
 }
 
 const reactiveState = new ReactiveState();
+
+/**
+ * Verifica si un nombre de atributo CSS es seguro para usar en selectores jQuery/Sizzle.
+ * Permitimos letras, números, guiones y guion bajo, y evitamos '.' u otros caracteres problemáticos.
+ */
+function isSafeAttrName(name) {
+    return /^[A-Za-z_][A-Za-z0-9_-]*$/.test(name);
+}
 
 // Fluent binder para encadenar métodos al estilo jQuery
 /**
@@ -521,6 +533,71 @@ $.extend({
     reactiveReset: function() {
         reactiveState.reset();
         return $;
+    },
+    /**
+     * Añade claves del estado solo si no existen aún.
+     * Por defecto es silencioso (no dispara render ni watchers).
+     * Uso: $.ensure({ 'perfil.nombre': 'Invitado', 'ui.modalOpen': false }, { silent: true })
+     */
+    ensure: function(defaults, options = {}) {
+        const { silent = true } = options;
+        if (!defaults || typeof defaults !== 'object') return $;
+        const updates = {};
+        Object.keys(defaults).forEach(k => {
+            const existing = reactiveState.getState(k);
+            if (typeof existing === 'undefined') {
+                updates[k] = defaults[k];
+            }
+        });
+
+        const hasUpdates = Object.keys(updates).length > 0;
+        if (hasUpdates) {
+            // set en batch respetando el flag silent
+            reactiveState.setStates(updates, !!silent);
+        }
+        return $;
+    },
+    /**
+     * Igual que ensure, pero aplicando un prefijo/namespace a cada clave.
+     * Uso: $.ensureNS('perfil', { nombre: 'Invitado' }, { silent: true, sep: '.' })
+     */
+    ensureNS: function(prefix, defaults, options = {}) {
+        const sep = options.sep != null ? options.sep : '.';
+        if (!prefix) return $;
+        const namespaced = {};
+        if (defaults && typeof defaults === 'object') {
+            Object.keys(defaults).forEach(k => {
+                namespaced[`${prefix}${sep}${k}`] = defaults[k];
+            });
+        }
+        return $.ensure(namespaced, options);
+    },
+    /**
+     * Helper de namespace para trabajar con un prefijo de forma segura y legible.
+     * Devuelve utilidades: k(key), ensure(defaults), get/set/watch.
+     * Ejemplo:
+     *   const perfil = $.namespace('perfil');
+     *   perfil.ensure({ nombre: 'Invitado' });
+     *   $('#nombre').reactive(perfil.k('nombre')).val();
+     */
+    namespace: function(prefix, options = {}) {
+        const sep = options.sep != null ? options.sep : '.';
+        const makeKey = (key) => `${prefix}${sep}${key}`;
+        return {
+            k: makeKey,
+            /** Añade defaults dentro del namespace si no existen (silent por defecto). */
+            ensure: function(defs, opts = {}) {
+                return $.ensureNS(prefix, defs, { ...opts, sep });
+            },
+            /** Obtiene el valor namespaced. */
+            get: function(key) { return $.state(makeKey(key)); },
+            /** Setea el valor namespaced (acepta valor o updater fn, delega en $.state). */
+            set: function(key, value) { $.state(makeKey(key), value); return this; },
+            /** Observa cambios de una clave en el namespace. */
+            watch: function(key, cb) { $.watch(makeKey(key), cb); return this; },
+            /** Alias directo a $.state para usuarios que prefieran esta forma. */
+            state: function(key, value) { $.state(makeKey(key), value); return this; }
+        };
     }
 });
 

@@ -5,6 +5,7 @@ import { initTodoList } from './todo-list.js';
 import { initToggle } from './toggle.js';
 import { initColors } from './colors.js';
 import { initConsole } from './console.js';
+import { initNamespaces } from './namespaces.js';
 
 window.$ = $;
 
@@ -34,7 +35,8 @@ $(function() {
     initToggle();
     initColors();
     initConsole();
-    
+    initNamespaces();
+
     // Watchers globales
     $.watch('tareas', function(tareas) {
         $.state('totalTareas', tareas ? tareas.length : 0);
@@ -47,4 +49,6 @@ $(function() {
     });
     
     console.log('✅ Demo inicializada con sintaxis ES6 y módulos');
+
+    // Demo 7: Namespaces ahora modularizado en src/examples-puro/namespaces.js
 });
