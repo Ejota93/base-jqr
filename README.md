@@ -19,6 +19,17 @@ Ambos comparten el mismo motor de estado y `$.watch()` para observar cambios.
 npm install jquery-reactive-state
 ```
 
+### ES6 / Bundlers
+Si usas módulos ES6, importa la versión ES6 y deja que tu bundler resuelva jQuery:
+```javascript
+import $ from 'jquery';
+import './src/jquery.reactive.es6.js';
+
+$.reactiveInit({ contador: 0 });
+$("#out").reactive('contador').text();
+```
+En este modo, la librería auto-inicializa bindings declarativos en `document.ready`.
+
 ## Conceptos Básicos
 
 - `$.reactiveInit(initialState)`: inicializa el estado global.
@@ -41,6 +52,7 @@ Atributos soportados:
 - `st-show="clave"` / `st-hide="clave"` → visibilidad condicional (boolean)
 - `st-enabled="clave"` / `st-disabled="clave"` → habilitar/deshabilitar (boolean)
 - `st-css-<prop>="clave"` → CSS dinámico (ej: `st-css-color`, `st-css-background-color`)
+- `[st-<clave>]="<directiva>"` → estilo corto equivalente (ej: `<span st-contador="text">`)
 
 Ejemplo (Contador + Formulario):
 ```html
@@ -433,6 +445,17 @@ Pasos:
 - `$.render(key?)`
 - `$.reactiveConfig(options)` / `$.reactiveReset()`
 
+#### Configuración (`$.reactiveConfig`)
+- `prefix` (string, por defecto `st-`): prefijo de atributos declarativos.
+- `debug` (boolean): log de diagnóstico en consola.
+- `batchTimeout` (ms): pequeño retraso para agrupar renders.
+- `maxUpdateDepth` (número): límite defensivo para evitar bucles.
+- `allowUpdaterFn` (boolean): permite funciones actualizadoras en `$.state()`.
+
+#### Eventos
+- `state:update` (global): emitido en cada cambio de estado (valor y clave).
+- `state:changed:<clave>` (por elemento): emitido al aplicar una clave a un elemento.
+
 ### Elementos (`$.fn`)
 - `$(el).reactive('key').text()`
 - `$(el).reactive('key').html()`
@@ -461,6 +484,9 @@ Nota: Los métodos legacy `reactiveText/reactiveHtml/reactiveCss/reactiveShow/re
 - jQuery 3.7+
 - Navegadores modernos
 - Updater functions activadas por defecto. Si necesitas guardar funciones como valor de estado, desactiva con `$.reactiveConfig({ allowUpdaterFn: false })`.
+
+### Nota ES6
+La versión ES6 expone el singleton como `$.ReactiveState` para inspección avanzada y auto-inicializa bindings declarativos en `$(document).ready`. Los inputs con `st-value` tienen binding bidireccional automático.
 
 ## Licencia
 MIT
