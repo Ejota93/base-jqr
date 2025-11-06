@@ -345,13 +345,38 @@ class ReactiveBinder {
         this.key = key;
         this._unsubscribers = [];
         this._domEvents = [];
+        this._mapFns = [];
         // guardar referencia para potencial unbind externo
         this.$el.data('reactive-binder', this);
     }
 
+    /** Aplica transformaciones encadenadas (map) al valor antes de renderizar. */
+    _applyTransforms(val) {
+        if (!this._mapFns || this._mapFns.length === 0) return val;
+        try {
+            return this._mapFns.reduce((acc, fn) => {
+                try { return fn(acc); } catch (e) { console.error('[ReactiveBinder.map] transform error', e); return acc; }
+            }, val);
+        } catch (e) {
+            console.error('[ReactiveBinder] applyTransforms error', e);
+            return val;
+        }
+    }
+
+    /** Transforma el valor antes de renderizar en los métodos de salida. */
+    map(fn) {
+        if (typeof fn === 'function') {
+            this._mapFns.push(fn);
+        } else {
+            console.warn('[ReactiveBinder.map] argumento no es función:', fn);
+        }
+        return this;
+    }
+
     _subscribe(handler) {
         const unsub = reactiveState.subscribe(this.key, (val) => {
-            try { handler(this.$el, val); } catch (e) { console.error('[ReactiveBinder] handler error', e); }
+            const mapped = this._applyTransforms(val);
+            try { handler(this.$el, mapped); } catch (e) { console.error('[ReactiveBinder] handler error', e); }
         });
         this._unsubscribers.push(unsub);
         return this;
@@ -361,7 +386,8 @@ class ReactiveBinder {
         // Render inicial
         const initial = reactiveState.getState(this.key);
         if (initial !== undefined) {
-            try { handler(this.$el, initial); } catch (e) { console.error('[ReactiveBinder] initial handler error', e); }
+            const mapped = this._applyTransforms(initial);
+            try { handler(this.$el, mapped); } catch (e) { console.error('[ReactiveBinder] initial handler error', e); }
         }
         // Suscripción
         return this._subscribe(handler);
@@ -390,7 +416,8 @@ class ReactiveBinder {
     val() {
         const $el = this.$el;
         // setear valor inicial desde estado
-        const initial = reactiveState.getState(this.key);
+        const initialRaw = reactiveState.getState(this.key);
+        const initial = this._applyTransforms(initialRaw);
         if ($el.is('input[type="checkbox"]')) {
             $el.prop('checked', !!initial);
         } else if (typeof initial !== 'undefined' && $el.val() !== initial) {

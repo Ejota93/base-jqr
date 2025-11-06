@@ -469,6 +469,7 @@ Pasos:
 - `$(el).reactive('key').attr('<name>')` / `$(el).reactive('key').prop('<name>')` / `$(el).reactive('key').data('<key>')`
 - `$(el).reactive('lista').list(templateFn, options)`
 - `$(el).reactive('key').on(events, handler, { prevent, stop, once })` → adjunta eventos al elemento con opciones ergonómicas. `events` puede ser string separado por espacios o un array.
+- `$(el).reactive('key').map(fn)` → transforma el valor antes de aplicarlo al DOM en los métodos de salida (`text`, `html`, `css`, `attr`, `prop`, `data`, `show/hide`, `enabled/disabled`, `className`, `toggleClass`). Admite múltiples `map()` encadenados.
 
 Nota: Los métodos legacy `reactiveText/reactiveHtml/reactiveCss/reactiveShow/reactiveHide` siguen disponibles pero están obsoletos. Usa el binder encadenable `$(el).reactive(key).…` para todas las vinculaciones.
 
@@ -653,6 +654,55 @@ La demo ES6 pura incluye un ejemplo modular que puedes consultar en:
 Ahí verás un contador `onDemo.contador` con botones que usan `.on()` junto a `.text()` y `.val()` para reflejar el estado y manejar interacciones con `prevent` y `once`.
 
 ---
+
+# Transformaciones: binder.map(fn)
+
+Permite transformar el valor de estado antes de aplicarlo al DOM en los métodos de salida del binder. Útil para formatear etiquetas, porcentajes, clases, estilos, etc.
+
+Firma:
+
+```javascript
+$(el).reactive('clave').map(fn).text();
+// Puedes encadenar múltiples mapeos: .map(f1).map(f2).text()
+```
+
+Comportamiento:
+- Se aplica en el render inicial y en cada actualización suscrita.
+- Solo afecta la salida hacia el DOM. En `val()` el two-way update (de input → estado) no aplica la transformación inversa: el valor que ingresa al estado es el crudo del input.
+- Funciona con todos los métodos de salida: `text`, `html`, `css`, `attr`, `prop`, `data`, `show/hide`, `enabled/disabled`, `className`, `toggleClass`.
+- No afecta el helper de listas `$.fn.list` (usa suscripción propia). Para listas, aplica transformaciones en tu `render(item, index)`.
+
+Ejemplos:
+
+```html
+<input type="range" id="nivel" min="0" max="100" step="5">
+<div id="label"></div>
+<div id="barra" style="height:12px;background:#667eea;width:0%"></div>
+
+<script>
+$.reactiveInit({ 'mapDemo.nivel': 25 });
+$('#nivel').reactive('mapDemo.nivel').val();
+
+$('#label').reactive('mapDemo.nivel')
+  .map(n => `Nivel: ${Math.round(Number(n)||0)}`)
+  .text();
+
+$('#barra').reactive('mapDemo.nivel')
+  .map(n => `${Math.max(0, Math.min(100, Number(n)||0))}%`)
+  .css('width');
+</script>
+```
+
+Notas:
+- Si usas `map()` sobre `val()` (inputs), la transformación se aplica al valor mostrado en el input, pero la escritura al estado toma el valor crudo del input. Si necesitas una transformación inversa (ej. parsear o validar), hazlo en tu handler de evento o mediante `$.watch`.
+
+## Ejemplo modular "9. Transformaciones con map()"
+
+La demo ES6 pura incluye un ejemplo modular que puedes consultar en:
+- HTML: `demo-es6-puro.html` (tarjeta "Ejemplo 9")
+- JS: `src/examples-puro/map.js`
+
+Demuestra etiqueta formateada, barra de progreso y color de fondo derivados del estado `mapDemo.nivel` mediante `map()`.
 
 ## Buenas prácticas de rendimiento con listas grandes
 

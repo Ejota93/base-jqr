@@ -7,6 +7,7 @@ import { initColors } from './colors.js';
 import { initConsole } from './console.js';
 import { initNamespaces } from './namespaces.js';
 import { initEventsOn } from './events-on.js';
+import { initMap } from './map.js';
 
 window.$ = $;
 
@@ -27,6 +28,7 @@ $(function() {
         colorFondo: '#3498db',
         colorNombre: 'Azul',
         consolaHtml: '<div class="console-line console-info">Consola iniciada - ¡Hola ES6 con módulos!</div>',
+        'mapDemo.nivel': 25,
     });
     
     // Inicializar módulos de ejemplos
@@ -38,6 +40,7 @@ $(function() {
     initConsole();
     initNamespaces();
     initEventsOn();
+    initMap();
 
     // Watchers globales
     $.watch('tareas', function(tareas) {

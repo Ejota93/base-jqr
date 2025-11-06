@@ -335,6 +335,31 @@ $('#on-demo-reset').reactive('onDemo.contador')
                     </div>
                 </div>
             </div>
+
+            <!-- Demo 9: Transformaciones con map() -->
+            <div class="card">
+                <h2 class="card-title">9. Transformaciones con map()</h2>
+                <div class="card-content">
+                    <input type="range" id="map-nivel" min="0" max="100" step="5">
+                    <div class="reactive-element" id="map-label">Nivel: 0</div>
+                    <div style="background:#eee;height:12px;border-radius:8px;">
+                        <div id="map-bar" style="background:#667eea;height:12px;width:0%;border-radius:8px;"></div>
+                    </div>
+                    <div id="map-color-box" class="reactive-element" style="height:80px;">Color según nivel</div>
+                    <div class="state-display">Estado crudo (mapDemo.nivel): <span id="map-state">0</span></div>
+                    <div class="code-example">
+<pre>
+$('#map-label').reactive('mapDemo.nivel')
+  .map(n => `Nivel: ${n}`)
+  .text();
+
+$('#map-bar').reactive('mapDemo.nivel')
+  .map(n => `${n}%`)
+  .css('width');
+</pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">
