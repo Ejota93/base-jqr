@@ -360,6 +360,47 @@ $('#map-bar').reactive('mapDemo.nivel')
                     </div>
                 </div>
             </div>
+
+            <!-- Demo 10: Referencias de DOM con $.refs() -->
+            <div class="card">
+                <h2 class="card-title">10. Referencias de DOM con $.refs()</h2>
+                <div class="card-content" id="refs-root">
+                    <p>Recolecta elementos marcados con <code>data-ref</code> y haz wiring imperativo limpio.</p>
+                    <input type="text" data-ref="nombre" placeholder="Nombre (refsDemo.nombre)">
+                    <div class="reactive-element" data-ref="label">Nombre: Invitado</div>
+                    <div class="btn-group">
+                        <button class="btn" data-ref="btnGuardar">Guardar nombre</button>
+                        <button class="btn btn-tertiary" data-ref="btnDestacar">Alternar destacado</button>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:10px;">
+                        <div class="reactive-element" data-ref="item" style="flex:1;">Item A</div>
+                        <div class="reactive-element" data-ref="item" style="flex:1;">Item B</div>
+                        <div class="reactive-element" data-ref="item" style="flex:1;">Item C</div>
+                    </div>
+                    <div class="state-display">
+                        Estado nombre (crudo): <span data-ref="estadoNombre"></span><br>
+                        Estado destacados: <span data-ref="estadoDestacado"></span><br>
+                        Guardados: <span data-ref="guardados">0</span>
+                    </div>
+                    <div class="code-example">
+<pre>
+// Recolectar refs dentro del contenedor
+const { nombre, label, btnGuardar, item, btnDestacar } = $.refs('#refs-root');
+
+// Two-way del input y salida formateada
+nombre.reactive('refsDemo.nombre').val();
+label.reactive('refsDemo.nombre').map(n => `Nombre: ${n || 'Invitado'}`).text();
+
+// Duplicados: aplicar toggle de clase a la colección completa
+item.reactive('refsDemo.destacado').toggleClass('highlight');
+
+// Alternar destacado y guardar
+btnDestacar.reactive('refsDemo.destacado').on('click', () => $.state('refsDemo.destacado', v => !v), { prevent: true });
+btnGuardar.reactive('refsDemo.nombre').on('click', () => $.state('refsDemo.guardadoCount', c => (c || 0) + 1), { prevent: true });
+</pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">

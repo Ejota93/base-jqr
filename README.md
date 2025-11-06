@@ -447,6 +447,7 @@ Pasos:
 - `$.ensure(defaults, { silent })` → establece valores por defecto solo si la clave no existe. Por defecto es silencioso (`silent: true`).
 - `$.ensureNS(prefix, defaults, { silent, sep })` → igual que `ensure` pero aplicando prefijo/namespace a cada clave. `sep` (separador) por defecto es `'.'`.
 - `$.namespace(prefix, { sep })` → helper para trabajar cómodamente con claves namespaced. Devuelve utilidades: `k(key)`, `ensure(defs, { silent })`, `get(key)`, `set(key, value|fn)`, `watch(key, cb)`, `state(key, value|fn)`.
+- `$.refs(root, opts)` → recoge elementos etiquetados con `data-ref` (por defecto) bajo `root` y devuelve un objeto `{ refName: $element }`. Opciones: `{ attr = 'data-ref', normalize = true, as = 'jquery', includeRoot = true }`.
 
 #### Configuración (`$.reactiveConfig`)
 - `prefix` (string, por defecto `st-`): prefijo de atributos declarativos.
@@ -713,3 +714,88 @@ Si vas a manejar listas de miles de elementos (por ejemplo, 10.000 clientes):
 - Considera paginación o virtualización si la lista es interactiva.
 - Agrupa cambios en lote con `$.state({ ... })`.
 - Para claves con `.`, evita el estilo corto `[st-<clave>]` y usa `st-text="namespace.clave"` o el binding imperativo.
+
+---
+
+# Referencias de DOM: $.refs(root, opts)
+
+Helper para recolectar elementos del DOM marcados con un atributo de referencia (por defecto `data-ref`) y devolver un objeto simple para acceso cómodo.
+
+Firma y opciones:
+
+```javascript
+const refs = $.refs(root, { attr: 'data-ref', normalize: true, as: 'jquery', includeRoot: true });
+// - attr: nombre del atributo (por defecto 'data-ref'). Puedes usar 'ref'.
+// - normalize: convierte 'mi-ref' → 'miRef' para claves más ergonómicas.
+// - as: 'jquery' (devuelve jQuery) o 'dom' (devuelve elementos DOM; duplicados como array).
+// - includeRoot: incluye el root si también posee el atributo.
+```
+
+Uso típico:
+
+```html
+<div id="perfil">
+  <input data-ref="nombre" placeholder="Nombre">
+  <span data-ref="label"></span>
+  <button data-ref="btnGuardar">Guardar</button>
+</div>
+
+<script>
+const { nombre, label, btnGuardar } = $.refs('#perfil');
+// Vincula de forma imperativa y legible
+nombre.reactive('perfil.nombre').val();
+label.reactive('perfil.nombre').map(n => `Nombre: ${n || 'Invitado'}`).text();
+btnGuardar.reactive('perfil.nombre').on('click', () => console.log('Guardar', $.state('perfil.nombre')));
+</script>
+```
+
+Duplicados:
+- Si hay varios elementos con la misma referencia (por ejemplo, múltiples `data-ref="item"`), el valor será una selección jQuery con todos esos elementos, lo que permite aplicar métodos del binder a la colección completa.
+  ```javascript
+  const { item } = $.refs(document);
+  item.reactive('ui.destacado').toggleClass('highlight');
+  ```
+- Si usas `{ as: 'dom' }`, recibirás un único elemento (si hay uno) o un array de elementos DOM si hay duplicados.
+
+Notas:
+- $.refs no añade suscripciones ni lógica reactiva; solo recolecta nodos.
+- Ideal para mantener HTML limpio y hacer wiring desde JS sin depender de IDs, especialmente en bloques complejos.
+
+---
+
+# Observadores encadenables: binder.watch(handler, opts)
+
+Observa cambios de la clave asociada al binder de forma encadenable, similar en ergonomía a binder.on.
+
+Firma:
+- binder.watch(handler, opts)
+  - handler: función que recibe ($el, newVal, oldVal, key)
+  - opts:
+    - mapped: boolean (por defecto true). Si true, aplica las transformaciones definidas con .map() al valor antes de entregar al handler.
+    - immediate: boolean (por defecto false). Si true, invoca el handler inmediatamente con el valor actual.
+    - once: boolean (por defecto false). Si true, se desuscribe después de la primera notificación.
+
+Ejemplo básico:
+```js
+$('#usuario-span').reactive('usuario.nombre')
+  .text()
+  .watch(($el, nuevo, viejo, key) => {
+    console.log(`[watch] ${key}:`, viejo, '→', nuevo);
+  }, { immediate: true });
+```
+
+Con transformaciones y una vez:
+```js
+$('#nivel-label').reactive('mapDemo.nivel')
+  .map(n => Math.round(Number(n) || 0))
+  .text()
+  .watch(($el, n, prev) => {
+    if (n >= 100) {
+      $el.addClass('maximo');
+    }
+  }, { mapped: true, once: true });
+```
+
+Notas:
+- binder.watch se limita a la clave del binder; para observar múltiples claves usa $.watch o $.namespace('x').watch('y', ...).
+- Si necesitas que los watchers se disparen al fijar defaults, usa $.ensure(..., { silent: false }) o opts.immediate: true en el propio binder.watch.

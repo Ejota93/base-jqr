@@ -513,6 +513,51 @@ class ReactiveBinder {
         });
         return this;
     }
+
+    /**
+     * Observa cambios de la clave del binder con ergonomía de encadenamiento.
+     * opts: { mapped = true, immediate = false, once = false }
+     * - mapped: aplica transformaciones definidas con .map() al newVal (y oldVal si corresponde).
+     * - immediate: invoca el handler inmediatamente con el valor actual.
+     * - once: desuscribe después de la primera notificación.
+     * Callback firma: ( $el, newVal, oldVal, key )
+     */
+    watch(handler, opts = {}) {
+        const { mapped = true, immediate = false, once = false } = opts;
+        const key = this.key;
+        const $el = this.$el;
+
+        if (typeof handler !== 'function') {
+            console.warn('[ReactiveBinder.watch] handler no es función:', handler);
+            return this;
+        }
+
+        // Llamada inmediata con el valor actual
+        if (immediate) {
+            const initialRaw = reactiveState.getState(key);
+            const initial = mapped ? this._applyTransforms(initialRaw) : initialRaw;
+            try {
+                handler($el, initial, undefined, key);
+            } catch (e) {
+                console.error('[ReactiveBinder.watch] error en immediate handler', e);
+            }
+        }
+
+        const unsubscribe = reactiveState.subscribe(key, (newVal, oldVal, k) => {
+            const next = mapped ? this._applyTransforms(newVal) : newVal;
+            const prev = mapped ? this._applyTransforms(oldVal) : oldVal;
+            try {
+                handler($el, next, prev, k);
+            } catch (e) {
+                console.error('[ReactiveBinder.watch] error en handler', e);
+            }
+            if (once) {
+                try { unsubscribe(); } catch (_) {}
+            }
+        });
+        this._unsubscribers.push(unsubscribe);
+        return this;
+    }
 }
 
 $.extend({
@@ -596,6 +641,56 @@ $.extend({
     reactiveReset: function() {
         reactiveState.reset();
         return $;
+    },
+    /**
+     * Recoge referencias del DOM marcadas con un atributo (por defecto data-ref) y devuelve un mapa clave → elemento(s).
+     * Uso:
+     *   const { nombre, email } = $.refs(document);
+     *   nombre.reactive('perfil.nombre').val();
+     * Opciones:
+     *   - attr: nombre del atributo (default: 'data-ref')
+     *   - normalize: convierte claves 'mi-ref' → 'miRef' (default: true)
+     *   - as: 'jquery' | 'dom' (default: 'jquery')
+     *   - includeRoot: incluye el propio root si tiene el atributo (default: true)
+     */
+    refs: function(root, options = {}) {
+        const {
+            attr = 'data-ref',
+            normalize = true,
+            as = 'jquery',
+            includeRoot = true,
+        } = options;
+
+        function camelize(str) {
+            if (!normalize) return str;
+            return String(str).replace(/[-_]+([a-z0-9])/gi, (_, c) => c.toUpperCase());
+        }
+
+        const $root = root && root.jquery ? root : $(root || document);
+        const map = {};
+
+        function addEl(el) {
+            const $el = $(el);
+            const rawKey = $el.attr(attr);
+            if (!rawKey) return;
+            const key = camelize(rawKey);
+            const value = (as === 'dom') ? el : $el;
+            if (map[key]) {
+                // combinar entradas duplicadas
+                if (as === 'dom') {
+                    if (Array.isArray(map[key])) map[key].push(el);
+                    else map[key] = [map[key], el];
+                } else {
+                    map[key] = map[key].add($el);
+                }
+            } else {
+                map[key] = value;
+            }
+        }
+
+        if (includeRoot && $root.is(`[${attr}]`)) addEl($root[0]);
+        $root.find(`[${attr}]`).each(function() { addEl(this); });
+        return map;
     },
     /**
      * Añade claves del estado solo si no existen aún.

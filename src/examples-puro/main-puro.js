@@ -8,6 +8,7 @@ import { initConsole } from './console.js';
 import { initNamespaces } from './namespaces.js';
 import { initEventsOn } from './events-on.js';
 import { initMap } from './map.js';
+import { initRefs } from './refs.js';
 
 window.$ = $;
 
@@ -29,6 +30,7 @@ $(function() {
         colorNombre: 'Azul',
         consolaHtml: '<div class="console-line console-info">Consola iniciada - ¡Hola ES6 con módulos!</div>',
         'mapDemo.nivel': 25,
+        // Estado inicial para demo de $.refs (los defaults se establecen dentro del módulo con $.ensure)
     });
     
     // Inicializar módulos de ejemplos
@@ -41,6 +43,7 @@ $(function() {
     initNamespaces();
     initEventsOn();
     initMap();
+    initRefs();
 
     // Watchers globales
     $.watch('tareas', function(tareas) {
