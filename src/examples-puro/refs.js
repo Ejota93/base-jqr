@@ -12,7 +12,12 @@ export function initRefs() {
   });
 
   // Two-way binding del input nombre
-  nombre.reactive('refsDemo.nombre').val();
+  const nombreBinder = nombre.reactive('refsDemo.nombre').val();
+  // Normalización con binder.set: si queda vacío, poner "Invitado" (evita bucles con comparación interna)
+  nombreBinder.watch(($el, raw) => {
+    const norm = String(raw ?? '').trim();
+    if (!norm) nombreBinder.set('Invitado');
+  }, { mapped: false });
 
   // Etiqueta formateada con map()
   label.reactive('refsDemo.nombre')

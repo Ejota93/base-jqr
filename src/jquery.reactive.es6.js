@@ -558,6 +558,31 @@ class ReactiveBinder {
         this._unsubscribers.push(unsubscribe);
         return this;
     }
+
+    /**
+     * Azúcar para actualizar el estado de la misma clave del binder.
+     * Acepta valor directo o updater fn(prev) y opción { silent } para evitar disparos.
+     */
+    set(valueOrFn, opts = {}) {
+        const { silent = false } = opts;
+        const key = this.key;
+        try {
+            if (typeof valueOrFn === 'function' && reactiveState.config.allowUpdaterFn) {
+                const prev = reactiveState.getState(key);
+                const next = valueOrFn(prev);
+                // Evitar bucles triviales si no hay cambio
+                if (next === prev) return this;
+                reactiveState.setState(key, next, silent);
+            } else {
+                const prev = reactiveState.getState(key);
+                if (valueOrFn === prev) return this;
+                reactiveState.setState(key, valueOrFn, silent);
+            }
+        } catch (e) {
+            console.error('[ReactiveBinder.set] error al actualizar estado', e);
+        }
+        return this;
+    }
 }
 
 $.extend({

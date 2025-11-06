@@ -799,3 +799,38 @@ $('#nivel-label').reactive('mapDemo.nivel')
 Notas:
 - binder.watch se limita a la clave del binder; para observar múltiples claves usa $.watch o $.namespace('x').watch('y', ...).
 - Si necesitas que los watchers se disparen al fijar defaults, usa $.ensure(..., { silent: false }) o opts.immediate: true en el propio binder.watch.
+
+---
+
+# Actualización de estado encadenable: binder.set(value|fn, opts)
+
+Permite actualizar el estado de la misma clave del binder sin tener que llamar a $.state explícitamente.
+
+Firma:
+- binder.set(valueOrFn, opts)
+  - valueOrFn: valor directo o función updater (prev) => next
+  - opts:
+    - silent: boolean (por defecto false). Si true, actualiza sin disparar watchers ni render.
+
+Ejemplos:
+```js
+// Actualización directa
+$('#nivel-label').reactive('mapDemo.nivel').set(50);
+
+// Usando updater fn (si allowUpdaterFn está habilitado)
+const binder = $('#nivel-label').reactive('mapDemo.nivel');
+binder.set(prev => Math.min(100, Math.max(0, Number(prev) || 0)));
+
+// Dentro de un watch, usando closure para referenciar el binder
+const b = $('#nivel-label').reactive('mapDemo.nivel').text();
+b.watch(($el, raw) => {
+  const clamped = Math.max(0, Math.min(100, Number(raw) || 0));
+  if (clamped !== raw) b.set(clamped); // evita bucle gracias a la comparación
+}, { mapped: false });
+```
+
+Evitar bucles por accidente:
+- Compara antes de setear: sólo actualiza si next !== prev.
+- Si normalizas una sola vez, usa { once: true } en watch.
+- Para cálculos derivados, considera actualizar otra clave distinta para evitar recursión en la misma.
+- Si necesitas actualizar sin disparar watchers ni render, usa opts.silent: true (y renderiza/observa manualmente si procede).
