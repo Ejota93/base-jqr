@@ -305,8 +305,8 @@
 <pre>
 const perfil = $.namespace('perfil');
 perfil.ensure({ nombre: 'Invitado' });
-$('#ns-input-nombre').reactive(perfil.k('nombre')).val();
-$('#ns-nombre-span').reactive(perfil.k('nombre')).text();
+perfil.nombre($('#ns-input-nombre')).val();
+perfil.nombre($('#ns-nombre-span')).text();
 </pre>
                     </div>
                 </div>
@@ -397,6 +397,51 @@ item.reactive('refsDemo.destacado').toggleClass('highlight');
 // Alternar destacado y guardar
 btnDestacar.reactive('refsDemo.destacado').on('click', () => $.state('refsDemo.destacado', v => !v), { prevent: true });
 btnGuardar.reactive('refsDemo.nombre').on('click', () => $.state('refsDemo.guardadoCount', c => (c || 0) + 1), { prevent: true });
+</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo 11: $.refs() + Namespaces -->
+            <div class="card">
+                <h2 class="card-title">11. Referencias + Namespaces</h2>
+                <div class="card-content" id="refs-ns-root">
+                    <p>Combina <code>$.refs()</code> para recolectar elementos y <code>$.namespace()</code> para aislar estado.</p>
+                    <input type="text" data-ref="nombre" placeholder="Nombre (perfilNs.nombre)">
+                    <div class="reactive-element" data-ref="label">PerfilNs: Invitado</div>
+                    <div class="btn-group">
+                        <button class="btn" data-ref="btnGuardar">Guardar nombre</button>
+                        <button class="btn btn-tertiary" data-ref="btnDestacar">Alternar destacado</button>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:10px;">
+                        <div class="reactive-element" data-ref="item" style="flex:1;">Item A</div>
+                        <div class="reactive-element" data-ref="item" style="flex:1;">Item B</div>
+                        <div class="reactive-element" data-ref="item" style="flex:1;">Item C</div>
+                    </div>
+                    <div class="state-display">
+                        PerfilNs.nombre (crudo): <span data-ref="estadoNombre"></span><br>
+                        Estado destacados: <span data-ref="estadoDestacado"></span><br>
+                        Guardados: <span data-ref="guardados">0</span>
+                    </div>
+                    <div class="code-example">
+<pre>
+// Namespace y refs dentro del contenedor
+const perfilNs = $.namespace('perfilNs');
+const { nombre, label, btnGuardar, item, btnDestacar } = $.refs('#refs-ns-root');
+
+// Defaults en el namespace
+perfilNs.ensure({ nombre: 'Invitado', destacado: false, guardadoCount: 0 });
+
+// Two-way y salida formateada
+perfilNs.nombre(nombre).val();
+perfilNs.nombre(label).map(n => `PerfilNs: ${n || 'Invitado'}`).text();
+
+// Duplicados con toggleClass sobre el namespace
+perfilNs.destacado(item).toggleClass('highlight');
+
+// Acciones en el namespace
+perfilNs.destacado(btnDestacar).on('click', () => perfilNs.set('destacado', v => !v), { prevent: true });
+perfilNs.nombre(btnGuardar).on('click', () => perfilNs.set('guardadoCount', c => (c || 0) + 1), { prevent: true });
 </pre>
                     </div>
                 </div>

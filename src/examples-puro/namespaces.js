@@ -23,9 +23,9 @@ export function initNamespaces() {
   const $nsInput = $('#ns-input-nombre');
   const $nsSpan = $('#ns-nombre-span');
   if ($nsInput.length) {
-    $nsInput.reactive(perfil.k('nombre')).val();
+    perfil.nombre($nsInput).val();
   }
   if ($nsSpan.length) {
-    $nsSpan.reactive(perfil.k('nombre')).text();
+    perfil.nombre($nsSpan).text();
   }
 }

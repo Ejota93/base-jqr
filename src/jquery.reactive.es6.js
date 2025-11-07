@@ -342,7 +342,8 @@ function isSafeAttrName(name) {
 class ReactiveBinder {
     constructor($el, key) {
         this.$el = $el;
-        this.key = key;
+        // Asegurar que la clave sea string (soporta helpers con toString())
+        try { this.key = String(key); } catch (_) { this.key = key; }
         this._unsubscribers = [];
         this._domEvents = [];
         this._mapFns = [];
@@ -597,16 +598,18 @@ $.extend({
         if (arguments.length === 0) {
             return reactiveState.getState();
         }
-        if (typeof key === 'string' && arguments.length === 1) {
-            return reactiveState.getState(key);
+        if (arguments.length === 1) {
+            const k = (typeof key === 'string') ? key : String(key);
+            return reactiveState.getState(k);
         }
-        if (typeof key === 'string' && arguments.length === 2) {
+        if (arguments.length === 2 && (typeof key !== 'object' || key === null)) {
+            const k = (typeof key === 'string') ? key : String(key);
             if (typeof value === 'function' && reactiveState.config.allowUpdaterFn) {
-                const prev = reactiveState.getState(key);
+                const prev = reactiveState.getState(k);
                 const next = value(prev);
-                reactiveState.setState(key, next);
+                reactiveState.setState(k, next);
             } else {
-                reactiveState.setState(key, value);
+                reactiveState.setState(k, value);
             }
             return $;
         }
@@ -628,14 +631,17 @@ $.extend({
     },
     /** Observa cambios: por clave o global (sobre claves existentes). */
     watch: function(key, callback) {
-        if (typeof key === 'function') {
+        // Global watch sólo cuando el primer argumento es función y no hay callback
+        if (typeof key === 'function' && typeof callback === 'undefined') {
             const globalCallback = key;
             Object.keys(reactiveState.getState()).forEach(k => {
                 reactiveState.subscribe(k, (newVal, oldVal) => globalCallback(newVal, oldVal, k));
             });
-        } else {
-            reactiveState.subscribe(key, callback);
+            return $;
         }
+        // Clave específica: admite claves no-string (coerción a String)
+        const k = (typeof key === 'string') ? key : String(key);
+        reactiveState.subscribe(k, callback);
         return $;
     },
     /** Inicializa el estado (no renderiza automáticamente). */
@@ -766,7 +772,7 @@ $.extend({
     namespace: function(prefix, options = {}) {
         const sep = options.sep != null ? options.sep : '.';
         const makeKey = (key) => `${prefix}${sep}${key}`;
-        return {
+        const nsApi = {
             k: makeKey,
             /** Añade defaults dentro del namespace si no existen (silent por defecto). */
             ensure: function(defs, opts = {}) {
@@ -779,8 +785,51 @@ $.extend({
             /** Observa cambios de una clave en el namespace. */
             watch: function(key, cb) { $.watch(makeKey(key), cb); return this; },
             /** Alias directo a $.state para usuarios que prefieran esta forma. */
-            state: function(key, value) { $.state(makeKey(key), value); return this; }
+            state: function(key, value) { $.state(makeKey(key), value); return this; },
+            /** Devuelve mapa de claves cortas → claves completas del namespace. */
+            keys: function(...names) {
+                const stateObj = reactiveState.getState();
+                const prefixStr = `${prefix}${sep}`;
+                let shortNames;
+                if (names.length === 1 && Array.isArray(names[0])) shortNames = names[0];
+                else if (names.length > 0) shortNames = names;
+                else {
+                    shortNames = Object.keys(stateObj)
+                        .filter(k => k.startsWith(prefixStr))
+                        .map(k => k.substring(prefixStr.length));
+                }
+                const out = {};
+                shortNames.forEach(n => { out[n] = makeKey(n); });
+                return out;
+            },
+            /** Alias de keys() para ergonomía: destructurar nombres reactivos. */
+            reactives: function(...names) { return this.keys(...names); }
         };
+
+        // Proxy para accesos directos y helpers:
+        // - perfilNs.nombre → helper híbrido (callable) con toString 'perfilNs.nombre'
+        //   Uso: perfilNs.nombre($('#el')).val(); perfilNs.nombre.set('Juan'); perfilNs.nombre.watch(cb)
+        return new Proxy(nsApi, {
+            get(target, prop, receiver) {
+                if (prop in target) return Reflect.get(target, prop, receiver);
+                if (typeof prop === 'string') {
+                    const fullKey = makeKey(prop);
+                    const helper = function(elOrSelector) {
+                        const $el = elOrSelector && elOrSelector.jquery ? elOrSelector : $(elOrSelector);
+                        return new ReactiveBinder($el, fullKey);
+                    };
+                    helper.fullKey = fullKey;
+                    helper.toString = () => fullKey;
+                    helper.valueOf = () => fullKey;
+                    helper.bind = (elOrSelector) => helper(elOrSelector);
+                    helper.get = () => $.state(fullKey);
+                    helper.set = (valOrFn) => { $.state(fullKey, valOrFn); return helper; };
+                    helper.watch = (cb) => { $.watch(fullKey, cb); return helper; };
+                    return helper;
+                }
+                return Reflect.get(target, prop, receiver);
+            }
+        });
     }
 });
 

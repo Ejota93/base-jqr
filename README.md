@@ -834,3 +834,43 @@ Evitar bucles por accidente:
 - Si normalizas una sola vez, usa { once: true } en watch.
 - Para cálculos derivados, considera actualizar otra clave distinta para evitar recursión en la misma.
 - Si necesitas actualizar sin disparar watchers ni render, usa opts.silent: true (y renderiza/observa manualmente si procede).
+---
+
+## Namespaces (ergonomía mejorada)
+
+Trabaja con prefijos de forma más cómoda. El helper `$.namespace(prefix)` ahora devuelve un objeto con métodos y un Proxy que permite acceder a las claves como propiedades.
+
+Ejemplo básico:
+```js
+const perfil = $.namespace('perfil');
+perfil.ensure({ nombre: 'Invitado' });
+// Propiedad callable: perfil.nombre(el) → devuelve un binder encadenable
+perfil.nombre($('#input-nombre')).val();
+perfil.nombre($('#nombre-span')).text();
+```
+
+API:
+- k(key): compone 'perfil.key'
+- ensure(defaults): añade defaults dentro del namespace si no existen (silencioso por defecto)
+- get(key): obtiene 'perfil.key'
+- set(key, value|fn): actualiza 'perfil.key'
+- watch(key, cb): observa cambios de 'perfil.key'
+- state(key, value): alias directo a $.state
+- keys(...namesOrArray): devuelve mapa { corto → completo } del namespace; si no pasas nombres, infiere desde el estado actual
+- reactives(...namesOrArray): alias de keys para destructurar cómodamente
+
+Atajos con Proxy (helpers híbridos por clave):
+- `perfil.nombre` devuelve un helper callable para esa clave. Puedes:
+  - Invocarlo con un elemento para obtener un binder: `perfil.nombre($('#el')).val().text().on(...)`
+  - Usar métodos utilitarios: `perfil.nombre.set('Juan')`, `perfil.nombre.get()`, `perfil.nombre.watch(cb)`
+  - Pasarlo donde se espera una clave string: su `toString()` devuelve `'perfil.nombre'`.
+  - Si la propiedad existe como método (p.ej. `ensure`, `set`, `watch`), el Proxy devuelve el método del namespace.
+
+Ejemplo avanzado:
+```js
+const perfil = $.namespace('perfil');
+perfil.ensure({ nombre: 'Invitado', edad: 18 });
+const { nombre, edad } = perfil.reactives(['nombre', 'edad']);
+$('#input-nombre').reactive(nombre).val();
+$('#span-edad').reactive(edad).text();
+```

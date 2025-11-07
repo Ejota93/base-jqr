@@ -9,6 +9,7 @@ import { initNamespaces } from './namespaces.js';
 import { initEventsOn } from './events-on.js';
 import { initMap } from './map.js';
 import { initRefs } from './refs.js';
+import { initRefsNS } from './refs-ns.js';
 
 window.$ = $;
 
@@ -44,6 +45,7 @@ $(function() {
     initEventsOn();
     initMap();
     initRefs();
+    initRefsNS();
 
     // Watchers globales
     $.watch('tareas', function(tareas) {

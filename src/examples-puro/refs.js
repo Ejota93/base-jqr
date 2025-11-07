@@ -12,12 +12,12 @@ export function initRefs() {
   });
 
   // Two-way binding del input nombre
-  const nombreBinder = nombre.reactive('refsDemo.nombre').val();
+  nombre.reactive('refsDemo.nombre').val();
   // Normalización con binder.set: si queda vacío, poner "Invitado" (evita bucles con comparación interna)
-  nombreBinder.watch(($el, raw) => {
-    const norm = String(raw ?? '').trim();
-    if (!norm) nombreBinder.set('Invitado');
-  }, { mapped: false });
+  // nombreBinder.watch(($el, raw) => {
+  //   const norm = String(raw ?? '').trim();
+  //   if (!norm) nombreBinder.set('Invitado');
+  // }, { mapped: false });
 
   // Etiqueta formateada con map()
   label.reactive('refsDemo.nombre')
@@ -25,10 +25,10 @@ export function initRefs() {
     .text();
 
   // Mostrar estado crudo
-  estadoNombre.reactive('refsDemo.nombre').text();
-
+  estadoNombre.reactive('refsDemo.nombre')
+  .text()
   // Ejemplo de watcher encadenable sobre la misma clave
-  estadoNombre.reactive('refsDemo.nombre').watch(($el, nuevo, viejo) => {
+  .watch(($el, nuevo, viejo) => {
     if (typeof window !== 'undefined' && typeof window.agregarMensajePura === 'function') {
       window.agregarMensajePura(`refsDemo.nombre: ${viejo ?? '∅'} → ${nuevo}`, 'info');
     } else {
