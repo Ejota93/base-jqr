@@ -7,5 +7,7 @@ export function initForm() {
     $('#input-email').reactive('email').val();
     $('#email-span').reactive('email').text();
     $('#input-edad').reactive('edad').val();
-    $('#edad-span').reactive('edad').text();
+    $('#edad-span').reactive('edad')
+    .map((e) => e || 'No especificada' )
+    .text();
 }

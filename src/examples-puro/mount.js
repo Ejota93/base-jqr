@@ -12,7 +12,7 @@ export function initMount() {
     });
 
   const $slot = $('#mount-slot');
-  
+
   if ($slot.length) {
     mountNS.visible($slot).mount(() => {
       const $panel = $('<div class="reactive-element fade-in"></div>');
@@ -23,9 +23,11 @@ export function initMount() {
       const $name = $('<div class="reactive-element" style="margin:8px 0;"></div>').appendTo($panel);
       mountNS.title($name).text();
 
-      const $countBox = $('<div class="state-display">Counts: <span id="mount-count-span">0</span></div>').appendTo($panel);
+      const $countBox = $('<div class="state-display"><span id="mount-count-span">0</span></div>').appendTo($panel);
       const $countSpan = $countBox.find('#mount-count-span');
-      mountNS.count($countSpan).text();
+      mountNS.count($countSpan)
+      .map((e)=> `Counts: ${e}`)
+      .text();
 
       const $btnInc = $('<button class="btn" style="margin-top:10px;">Incrementar</button>').appendTo($panel);
       mountNS.count($btnInc).on('click', () => mountNS.count.set(c => (c || 0) + 1), { prevent: true });

@@ -539,6 +539,78 @@
             }
             return $;
         },
+
+        /**
+         * Valores derivados: recalcula y establece `key` cuando cambian sus dependencias `deps`.
+         * Uso básico:
+         *   $.computed('label', ['nivel'], (n) => 'Nivel: ' + n)
+         * Args:
+         *   - key: string (clave de salida)
+         *   - deps: string | string[] (claves dependientes)
+         *   - computeFn: (...depValues) => nextValue
+         *   - options: { immediate = true, distinct = true, silent = false }
+         * Retorna: función cleanup() que desuscribe los watchers.
+         */
+        computed: function(key, deps, computeFn, options) {
+            options = options || {};
+            try {
+                var outKey = (typeof key === 'string') ? key : String(key);
+                var depKeys = Array.isArray(deps)
+                    ? deps.map(function(d){ return (typeof d === 'string') ? d : String(d); })
+                    : [ (typeof deps === 'string') ? deps : String(deps) ];
+                var immediate = options.immediate !== undefined ? options.immediate : true;
+                var distinct = options.distinct !== undefined ? options.distinct : true;
+                var silent = options.silent !== undefined ? options.silent : false;
+
+                if (!outKey || depKeys.length === 0 || typeof computeFn !== 'function') {
+                    console.warn('[$.computed] argumentos inválidos:', { key: key, deps: deps, computeFn: computeFn });
+                    return function noop(){};
+                }
+                // Evitar bucles triviales: salida depende de sí misma
+                if (depKeys.indexOf(outKey) !== -1) {
+                    console.warn('[$.computed] la clave de salida no puede depender de sí misma:', outKey);
+                    return function noop(){};
+                }
+
+                function recompute() {
+                    var values;
+                    try {
+                        values = depKeys.map(function(k){ return ReactiveState.getState(k); });
+                    } catch (e) {
+                        console.error('[$.computed] error obteniendo dependencias', e);
+                        return;
+                    }
+                    var next;
+                    try {
+                        next = computeFn.apply(null, values);
+                    } catch (e) {
+                        console.error('[$.computed] error en computeFn', e);
+                        return;
+                    }
+                    if (distinct) {
+                        var prev = ReactiveState.getState(outKey);
+                        if (next === prev) return;
+                    }
+                    try {
+                        ReactiveState.setState(outKey, next, silent);
+                    } catch (e) {
+                        console.error('[$.computed] error al setear clave derivada', e);
+                    }
+                }
+
+                // Suscribir a todas las dependencias
+                var unsubs = depKeys.map(function(k){ return ReactiveState.subscribe(k, recompute); });
+                // Render inicial
+                if (immediate) recompute();
+                // Cleanup
+                return function cleanup(){
+                    unsubs.forEach(function(fn){ try { fn(); } catch (_e) {} });
+                };
+            } catch (e) {
+                console.error('[$.computed] error inesperado', e);
+                return function noop(){};
+            }
+        },
         
         /**
          * Fuerza renderizado (una clave o todas).

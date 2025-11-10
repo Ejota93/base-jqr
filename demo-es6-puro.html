@@ -264,15 +264,15 @@
             </div>
 
             <!-- Demo 5: Colores Dinámicos -->
-            <div class="card">
+            <div class="card" id="refs-colors">
                 <h2 class="card-title">5. Colores Dinámicos</h2>
                 <div class="card-content">
                     <div id="color-box-pura" class="reactive-element" style="height: 100px;"></div>
                     <div class="btn-group">
-                        <button onclick="cambiarColorPuro('rojo')" class="btn" style="background-color:#e53e3e;">Rojo</button>
-                        <button onclick="cambiarColorPuro('azul')" class="btn" style="background-color:#3182ce;">Azul</button>
-                        <button onclick="cambiarColorPuro('verde')" class="btn" style="background-color:#38a169;">Verde</button>
-                        <button onclick="cambiarColorPuro('aleatorio')" class="btn btn-tertiary">Aleatorio</button>
+                        <button data-ref="cambiarColor" data-color="rojo" class="btn" style="background-color:#e53e3e;">Rojo</button>
+                        <button data-ref="cambiarColor" data-color="azul" class="btn" style="background-color:#3182ce;">Azul</button>
+                        <button data-ref="cambiarColor" data-color="verde" class="btn" style="background-color:#38a169;">Verde</button>
+                        <button data-ref="cambiarColor" data-color="aleatorio" class="btn btn-tertiary">Aleatorio</button>
                     </div>
                     <div class="state-display">
                         Color: <span id="color-nombre-span"></span>
@@ -497,6 +497,82 @@ m.visible($('#mount-state')).map(v =&gt; v ? 'true' : 'false').text();
 // 4) Array: return [ $('&lt;div&gt;Item A&lt;/div&gt;')[0], $('&lt;div&gt;Item B&lt;/div&gt;')[0] ];
 </code></pre>
 
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo 13: Valores derivados con $.computed() -->
+            <div class="card">
+                <h2 class="card-title">13. Valores derivados con $.computed()</h2>
+                <div class="card-content">
+                    <p>Define claves derivadas que se recalculan automáticamente cuando cambian sus dependencias.</p>
+
+                    <div style="margin-bottom:10px;">
+                        <label for="comp-nivel">Nivel (0–100):</label>
+                        <input type="range" id="comp-nivel" min="0" max="100" step="5">
+                        <div class="reactive-element" id="comp-label">Nivel: 0</div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label for="comp-first">Nombre</label>
+                            <input type="text" id="comp-first" placeholder="Nombre">
+                        </div>
+                        <div>
+                            <label for="comp-last">Apellido</label>
+                            <input type="text" id="comp-last" placeholder="Apellido">
+                        </div>
+                    </div>
+                    <div class="state-display" style="margin-top:10px;">
+                        Nombre completo (computedDemo.fullName): <span id="comp-full-name">Invitado</span>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:15px;">
+                        <div>
+                            <label for="comp-height">Altura (cm)</label>
+                            <input type="number" id="comp-height" min="0" step="1">
+                        </div>
+                        <div>
+                            <label for="comp-weight">Peso (kg)</label>
+                            <input type="number" id="comp-weight" min="0" step="0.1">
+                        </div>
+                    </div>
+                    <div class="state-display" style="margin-top:10px;">
+                        BMI: <span id="comp-bmi">BMI: N/A</span>
+                    </div>
+
+                    <div class="code-example">
+<pre><code>// Namespace para la demo de computed
+const comp = $.namespace('computedDemo');
+comp.ensure({ nivel: 25, label: '', firstName: '', lastName: '', fullName: 'Invitado', heightCm: 170, weightKg: 70, bmiLabel: '' });
+
+// Inputs y salidas
+comp.nivel($('#comp-nivel')).val();
+comp.label($('#comp-label')).text();
+comp.firstName($('#comp-first')).val();
+comp.lastName($('#comp-last')).val();
+comp.fullName($('#comp-full-name')).text();
+comp.heightCm($('#comp-height')).val();
+comp.weightKg($('#comp-weight')).val();
+comp.bmiLabel($('#comp-bmi')).text();
+
+// Computados
+$.computed(comp.k('label'), [comp.k('nivel')], (n) =&gt; `Nivel: ${Number(n || 0)}`);
+$.computed(comp.k('fullName'), [comp.k('firstName'), comp.k('lastName')], (f, l) =&gt; {
+  const full = `${(f || '').trim()} ${(l || '').trim()}`.trim();
+  return full || 'Invitado';
+});
+$.computed(comp.k('bmiLabel'), [comp.k('heightCm'), comp.k('weightKg')], (hCm, wKg) =&gt; {
+  const hM = Number(hCm || 0) / 100;
+  const w = Number(wKg || 0);
+  if (hM &lt;= 0 || w &lt;= 0) return 'BMI: N/A';
+  const bmi = w / (hM * hM);
+  const rounded = Math.round(bmi * 10) / 10;
+  let cat = 'Normal';
+  if (rounded &lt; 18.5) cat = 'Bajo peso'; else if (rounded &lt; 25) cat = 'Normal'; else if (rounded &lt; 30) cat = 'Sobrepeso'; else cat = 'Obesidad';
+  return `BMI: ${rounded} (${cat})`;
+});
+</code></pre>
                     </div>
                 </div>
             </div>

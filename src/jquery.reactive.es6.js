@@ -658,24 +658,31 @@ $.extend({
      * - $.state({k1: v1, k2: v2|fn}) → set múltiple en batch
      */
     state: function(key, value) {
+
         if (arguments.length === 0) {
             return reactiveState.getState();
         }
-        if (arguments.length === 1) {
-            const k = (typeof key === 'string') ? key : String(key);
-            return reactiveState.getState(k);
-        }
-        if (arguments.length === 2 && (typeof key !== 'object' || key === null)) {
-            const k = (typeof key === 'string') ? key : String(key);
-            if (typeof value === 'function' && reactiveState.config.allowUpdaterFn) {
-                const prev = reactiveState.getState(k);
-                const next = value(prev);
-                reactiveState.setState(k, next);
-            } else {
-                reactiveState.setState(k, value);
+
+        if((typeof key !== 'object' || key === null)){
+
+            if (arguments.length === 1) {
+                const k = (typeof key === 'string') ? key : String(key);
+                return reactiveState.getState(k);
             }
-            return $;
+            if (arguments.length === 2) {
+                const k = (typeof key === 'string') ? key : String(key);
+                if (typeof value === 'function' && reactiveState.config.allowUpdaterFn) {
+                    const prev = reactiveState.getState(k);
+                    const next = value(prev);
+                    reactiveState.setState(k, next);
+                } else {
+                    reactiveState.setState(k, value);
+                }
+                return $;
+            }
+
         }
+
         if (typeof key === 'object') {
             const updates = {};
             Object.keys(key).forEach(k => {
@@ -706,6 +713,63 @@ $.extend({
         const k = (typeof key === 'string') ? key : String(key);
         reactiveState.subscribe(k, callback);
         return $;
+    },
+    /**
+     * Valores derivados: recalcula y setea `key` cuando cambian `deps`.
+     * Uso: $.computed('label', ['nivel'], (n) => 'Nivel: ' + n)
+     * - deps: string o array de strings (claves completas)
+     * - computeFn: recibe los valores de deps en el mismo orden
+     * Retorna función de cleanup que desuscribe todos los watchers.
+     */
+    computed: function(key, deps, computeFn, options = {}) {
+        try {
+            const outKey = (typeof key === 'string') ? key : String(key);
+            const depKeys = Array.isArray(deps) ? deps.map(d => (typeof d === 'string') ? d : String(d))
+                                                : [(typeof deps === 'string') ? deps : String(deps)];
+            const { immediate = true, distinct = true, silent = false } = options;
+
+            if (!outKey || depKeys.length === 0 || typeof computeFn !== 'function') {
+                console.warn('[$.computed] argumentos inválidos:', { key, deps, computeFn });
+                return function noop(){};
+            }
+            // Evitar bucles triviales: si la salida depende de sí misma
+            if (depKeys.includes(outKey)) {
+                console.warn('[$.computed] la clave de salida no puede depender de sí misma:', outKey);
+                return function noop(){};
+            }
+
+            function recompute() {
+                let values;
+                try {
+                    values = depKeys.map(k => reactiveState.getState(k));
+                } catch (e) {
+                    console.error('[$.computed] error obteniendo dependencias', e);
+                    return;
+                }
+                let next;
+                try { next = computeFn.apply(null, values); }
+                catch (e) { console.error('[$.computed] error en computeFn', e); return; }
+
+                if (distinct) {
+                    const prev = reactiveState.getState(outKey);
+                    if (next === prev) return;
+                }
+                try { reactiveState.setState(outKey, next, silent); }
+                catch (e) { console.error('[$.computed] error al setear clave derivada', e); }
+            }
+
+            // Suscribir a todas las dependencias
+            const unsubs = depKeys.map(k => reactiveState.subscribe(k, recompute));
+            // Render inicial
+            if (immediate) recompute();
+            // Cleanup
+            return function cleanup() {
+                unsubs.forEach(fn => { try { fn(); } catch (_) {} });
+            };
+        } catch (e) {
+            console.error('[$.computed] error inesperado', e);
+            return function noop(){};
+        }
     },
     /** Inicializa el estado (no renderiza automáticamente). */
     reactiveInit: function(initialState) {

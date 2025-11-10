@@ -11,6 +11,7 @@ import { initMap } from './map.js';
 import { initRefs } from './refs.js';
 import { initRefsNS } from './refs-ns.js';
 import { initMount } from './mount.js';
+import { initComputed } from './computed.js';
 
 window.$ = $;
 
@@ -22,7 +23,7 @@ $(function() {
         contador: 0,
         nombre: 'Invitado',
         email: 'No proporcionado',
-        edad: 'No especificada',
+        edad: '',
         tareas: [],
         totalTareas: 0,
         visible: true,
@@ -48,6 +49,7 @@ $(function() {
     initRefs();
     initRefsNS();
     initMount();
+    initComputed();
 
     // Watchers globales
     $.watch('tareas', function(tareas) {

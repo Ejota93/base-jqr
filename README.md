@@ -36,6 +36,7 @@ En este modo, la librería auto-inicializa bindings declarativos en `document.re
 - `$.state(key?)`: obtiene todo el estado o una clave.
 - `$.state(key, value)` / `$.state(object)`: actualiza estado (uno o varios valores).
 - `$.watch(key, cb)` y `$.watch(cb)`: observa cambios de una clave o de todas.
+- `$.computed(key, deps, computeFn, options)`: define valores derivados que se recalculan automáticamente cuando cambian sus dependencias.
 - Render: el DOM se actualiza automáticamente con batch updates; puedes forzar con `$.render(key?)`.
 
 ---
@@ -223,6 +224,31 @@ $.state({
 });
 ```
 - Manejo de errores: si el updater lanza una excepción, se captura y registra en consola sin romper la app.
+
+---
+
+## Valores derivados: $.computed
+
+Define una clave que se recalcula automáticamente a partir de otras dependencias.
+
+Firma:
+```js
+$.computed('saludo', ['nombre'], (n) => `Hola ${n || 'Invitado'}`);
+```
+Opciones: `{ immediate = true, distinct = true, silent = false }`
+- immediate: ejecuta el cálculo inicial.
+- distinct: evita setear si no cambia.
+- silent: actualiza sin disparar watchers/render.
+
+Con namespaces:
+```js
+const perfil = $.namespace('perfil');
+perfil.ensure({ nombre: 'Invitado', edad: 18 });
+$.computed(perfil.k('label'), [perfil.k('nombre'), perfil.k('edad')], (n, e) => `${n} (${e})`);
+$('#out').reactive(perfil.k('label')).text();
+```
+
+La función devuelve `cleanup()` para desuscribir cuando ya no lo necesites.
 
 ---
 
@@ -527,6 +553,7 @@ Pasos:
 - `$.reactiveInit(initialState)`
 - `$.state()` / `$.state(key)` / `$.state(key, value)` / `$.state(object)`
 - `$.watch(key, cb)` / `$.watch(cb)`
+- `$.computed(key, deps, computeFn, options)`
 - `$.render(key?)`
 - `$.reactiveConfig(options)` / `$.reactiveReset()`
 - `$.ensure(defaults, { silent })` → establece valores por defecto solo si la clave no existe. Por defecto es silencioso (`silent: true`).
