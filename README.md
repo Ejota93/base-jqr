@@ -90,6 +90,91 @@ Sin atributos en el HTML. Vinculas desde JavaScript usando un binder encadenable
 - `$(el).reactive('clave').attr('<name>')` / `.prop('<name>')` / `.data('<key>')`
 - `$(el).reactive('lista').list(templateFn, { key: 'id' })` → listas eficientes
 
+### Montaje Condicional con `.mount(renderFn)`
+
+Para escenarios más complejos que un simple `show`/`hide`, el método `.mount()` ofrece una forma potente de renderizar y destruir un bloque de contenido dinámicamente dentro de un elemento contenedor, basado en el valor de una clave de estado.
+
+**Firma:** `$(el).reactive('claveBooleana').mount(renderFn)`
+
+**Comportamiento:**
+
+- **Cuando `claveBooleana` es `truthy`**:
+  1. Se ejecuta la función `renderFn`.
+  2. El resultado de `renderFn` se añade (append) al elemento contenedor (`el`).
+  3. **Idempotencia**: Si el contenido ya está montado y la clave sigue siendo `truthy`, no se vuelve a ejecutar para evitar re-renders innecesarios.
+
+- **Cuando `claveBooleana` es `falsy`**:
+  1. El contenido previamente montado por esta directiva se elimina del DOM.
+  2. El elemento contenedor se vacía (`.empty()`) para asegurar una limpieza completa.
+
+La función `renderFn` puede devolver diferentes tipos de contenido:
+- Un **objeto jQuery**.
+- Un **string de HTML**.
+- Un **nodo del DOM** (`Element`, `DocumentFragment`).
+- Un **array de nodos**.
+
+Dentro de `renderFn`, `this` hace referencia al elemento contenedor (el objeto jQuery del binder), permitiendo un wiring interno encapsulado.
+
+**Ejemplo de uso:**
+
+Imagina un panel que solo debe existir en el DOM si el usuario ha iniciado sesión.
+
+**HTML:**
+```html
+<div id="user-panel-container"></div>
+<button id="toggle-login">Toggle Login</button>
+```
+
+**JavaScript:**
+```javascript
+// Usando el helper de namespace para claridad
+const session = $.namespace('session');
+session.ensure({ isLoggedIn: false, username: 'Invitado' });
+
+// El contenedor donde se montará el panel
+const $container = $('#user-panel-container');
+
+// Vinculación con mount()
+session.isLoggedIn($container).mount(function() {
+  // `this` es $container
+  console.log('Renderizando panel de usuario...');
+
+  // El contenido a montar. Puede ser tan complejo como necesites.
+  const $panel = $('<div class="panel fade-in"></div>');
+
+  // Se puede hacer "wiring" interno dentro del contenido montado
+  const $welcomeMessage = $('<h3></h3>').appendTo($panel);
+  session.username($welcomeMessage)
+    .map(name => `Bienvenido, ${name}!`)
+    .text();
+
+  $('<button class="btn">Cerrar sesión</button>')
+    .on('click', () => session.isLoggedIn.set(false))
+    .appendTo($panel);
+
+  // Devolvemos el nodo principal a montar
+  return $panel;
+});
+
+// Control para simular el login/logout
+$('#toggle-login').on('click', () => {
+  session.isLoggedIn.set(prev => !prev);
+  if (session.isLoggedIn.get()) {
+    session.username.set('Usuario Real');
+  }
+});
+
+// Visualización del estado para la demo
+session.isLoggedIn.watch((_, val) => {
+  console.log('Estado isLoggedIn:', val);
+});
+```
+Este enfoque es superior a `show`/`hide` o a `.html()` porque:
+- **Eficiencia**: Los elementos no existen en el DOM cuando no son necesarios, aligerando la carga.
+- **Encapsulación**: Toda la lógica de creación y *wiring* del sub-componente vive dentro de `renderFn`.
+- **Limpieza Automática**: La librería se encarga de eliminar los nodos y los listeners asociados al desmontar, previniendo fugas de memoria.
+
+---
 Ejemplo (Contador + Formulario):
 ```html
 <!-- HTML -->

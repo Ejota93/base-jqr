@@ -405,6 +405,11 @@ class ReactiveBinder {
         this._domEvents = [];
         // quitar two-way de val()
         this.$el.off('input.reactive change.reactive');
+        // limpiar nodo montado por mount()
+        if (this._mountedNode && this._mountedNode.length) {
+            try { this._mountedNode.remove(); } catch (_) {}
+            this._mountedNode = null;
+        }
         return this.$el;
     }
 
@@ -479,6 +484,64 @@ class ReactiveBinder {
 
     /** Setea un data-* para el elemento con la clave. */
     data(dataKey) { return this._initialAndSubscribe(($el, val) => { $el.data(dataKey, val); }); }
+
+    /**
+     * Montaje condicional dentro del contenedor del binder.
+     * - Cuando el valor de la clave es truthy: inserta el nodo devuelto por renderFn.
+     * - Cuando es falsy: limpia el contenedor (eliminando el nodo montado).
+     * Idempotente: si ya está montado y sigue siendo truthy, no vuelve a renderizar.
+     * renderFn puede devolver: jQuery, DOM Node, HTML string o estructura compatible con jQuery.
+     */
+    mount(renderFn) {
+        if (typeof renderFn !== 'function') {
+            console.warn('[ReactiveBinder.mount] renderFn no es función:', renderFn);
+            return this;
+        }
+
+        // Referencia al último nodo montado para limpieza en unbind()
+        this._mountedNode = this._mountedNode || null;
+
+        const handler = ($el, val) => {
+            const shouldMount = !!val;
+            if (shouldMount) {
+                // Si ya hay un nodo montado y el valor sigue siendo truthy, no duplicar
+                if (this._mountedNode && this._mountedNode.length && $.contains($el[0], this._mountedNode[0])) {
+                    return;
+                }
+                // Limpiar y montar el nuevo contenido
+                try { $el.empty(); } catch (_) {}
+                let node;
+                try { node = renderFn.call($el); } catch (e) { console.error('[ReactiveBinder.mount] error en renderFn', e); node = null; }
+                let $node;
+                if (node && node.jquery) {
+                    $node = node;
+                } else if (typeof node === 'string') {
+                    $node = $(node);
+                } else if (node && (node.nodeType === 1 || node.nodeType === 11)) { // Element o DocumentFragment
+                    $node = $(node);
+                } else if (Array.isArray(node)) {
+                    $node = $(node);
+                } else if (node == null) {
+                    // Render por defecto si no se devolvió nada válido
+                    $node = $('<div></div>');
+                } else {
+                    // Intentar envolver estructuras desconocidas
+                    try { $node = $(node); } catch (_) { $node = $('<div></div>'); }
+                }
+                $el.append($node);
+                this._mountedNode = $node;
+            } else {
+                // Desmontar: eliminar el nodo montado y/o limpiar contenedor
+                if (this._mountedNode && this._mountedNode.length) {
+                    try { this._mountedNode.remove(); } catch (_) {}
+                    this._mountedNode = null;
+                }
+                try { $el.empty(); } catch (_) {}
+            }
+        };
+
+        return this._initialAndSubscribe(handler);
+    }
 
     list(render, options = {}) {
         // delega en la implementación existente de $.fn.list

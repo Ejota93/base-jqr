@@ -446,6 +446,60 @@ perfilNs.nombre(btnGuardar).on('click', () => perfilNs.set('guardadoCount', c =>
                     </div>
                 </div>
             </div>
+
+            <!-- Demo 12: Montaje condicional con mount() -->
+            <div class="card">
+                <h2 class="card-title">12. Montaje condicional con mount()</h2>
+                <div class="card-content">
+                    <p>Inserta y remueve contenido en un contenedor según el estado booleano, con idempotencia y limpieza.</p>
+                    <div class="btn-group" style="margin-bottom:10px;">
+                        <button id="btn-mount-show" class="btn">Mostrar</button>
+                        <button id="btn-mount-hide" class="btn btn-secondary">Ocultar</button>
+                        <button id="btn-mount-toggle" class="btn btn-tertiary">Toggle</button>
+                    </div>
+                    <div id="mount-slot" class="reactive-element" style="min-height:60px;">(slot vacío)</div>
+                    <div class="state-display">
+                        Estado (mountDemo.visible): <span id="mount-state">false</span>
+                    </div>
+                    <div class="code-example">
+<pre><code>
+// Namespace para la demo de mount
+const m = $.namespace('mountDemo');
+m.ensure({ visible: true, title: 'Panel montado', count: 0 });
+
+// Montaje condicional en el contenedor
+m.visible($('#mount-slot')).mount(() =&gt; {
+  // Puedes devolver jQuery, HTML string, nodo DOM, fragmento o array
+  const $panel = $(&lt;div class=&quot;panel fade-in&quot;&gt;&lt;/div&gt;);
+  $(&lt;div class=&quot;card-title&quot; style=&quot;font-size:1.1rem;&quot;&gt;&lt;/div&gt;).text(m.get('title')).appendTo($panel);
+  const $name = $(&lt;div class=&quot;reactive-element&quot; style=&quot;margin:8px 0;&quot;&gt;&lt;/div&gt;).appendTo($panel);
+  // Wiring interno del contenido montado
+  m.title($name).text();
+  const $count = $(&lt;div class=&quot;state-display&quot;&gt;Count: &lt;span id=&quot;mount-count-span&quot;&gt;0&lt;/span&gt;&lt;/div&gt;).appendTo($panel);
+  m.count($count.find('#mount-count-span')).text();
+  const $btnInc = $(&lt;button class=&quot;btn&quot; style=&quot;margin-top:10px;&quot;&gt;&lt;/button&gt;).appendTo($panel);
+  m.count($btnInc).on('click', () =&gt; m.count.set(c =&gt; (c || 0) + 1), { prevent: true });
+  return $panel; // ← También podrías retornar: '&lt;div&gt;...&lt;/div&gt;' o document.createElement('div')
+});
+
+// Controles
+m.visible($('#btn-mount-show')).on('click', () =&gt; m.visible.set(true), { prevent: true });
+m.visible($('#btn-mount-hide')).on('click', () =&gt; m.visible.set(false), { prevent: true });
+m.visible($('#btn-mount-toggle')).on('click', () =&gt; m.visible.set(v =&gt; !v), { prevent: true });
+
+// Visualización del estado
+m.visible($('#mount-state')).map(v =&gt; v ? 'true' : 'false').text();
+
+// Otros retornos posibles de renderFn:
+// 1) HTML string: return '&lt;div class=&quot;panel&quot;&gt;Contenido&lt;/div&gt;';
+// 2) Nodo DOM: const el = document.createElement('div'); el.textContent = 'Panel'; return el;
+// 3) DocumentFragment: const frag = document.createDocumentFragment(); frag.appendChild(el); return frag;
+// 4) Array: return [ $('&lt;div&gt;Item A&lt;/div&gt;')[0], $('&lt;div&gt;Item B&lt;/div&gt;')[0] ];
+</code></pre>
+
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">

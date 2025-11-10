@@ -10,6 +10,7 @@ import { initEventsOn } from './events-on.js';
 import { initMap } from './map.js';
 import { initRefs } from './refs.js';
 import { initRefsNS } from './refs-ns.js';
+import { initMount } from './mount.js';
 
 window.$ = $;
 
@@ -46,6 +47,7 @@ $(function() {
     initMap();
     initRefs();
     initRefsNS();
+    initMount();
 
     // Watchers globales
     $.watch('tareas', function(tareas) {
