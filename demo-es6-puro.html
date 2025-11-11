@@ -661,6 +661,61 @@ $.events(document, {
                     </div>
                 </div>
             </div>
+
+            <!-- Demo 16: Alias $.fn.reactiveList() -->
+            <div class="card">
+                <h2 class="card-title">16. Alias $.fn.reactiveList()</h2>
+                <div class="card-content" id="alias-reactive-list-root">
+                    <p>Usa el alias semántico para listas reactivas directamente desde el contenedor.</p>
+                    <div class="btn-group" style="margin-bottom:10px;">
+                        <button id="alias-add" class="btn">Agregar ítem</button>
+                        <button id="alias-shuffle" class="btn btn-secondary">Mezclar</button>
+                        <button id="alias-clear" class="btn btn-tertiary">Vaciar</button>
+                    </div>
+                    <div id="alias-list" class="reactive-element" style="display:grid; gap:8px;"></div>
+
+                    <div class="code-example">
+<pre><code>// Estado inicial
+$.ensure({ 'aliasList.items': [{ id: 1, text: 'Manzana' }, { id: 2, text: 'Banana' }] });
+
+// Renderizador de item
+function renderItem(item) {
+  return `&lt;div class=&quot;task-item&quot; data-id=&quot;${item.id}&quot;&gt;
+    &lt;span&gt;${item.text}&lt;/span&gt;
+    &lt;button class=&quot;btn-eliminar&quot; data-ref=&quot;del&quot;&gt;❌&lt;/button&gt;
+  &lt;/div&gt;`;
+}
+
+// Uso del alias sobre la clave
+$('#alias-list').reactiveList('aliasList.items', renderItem, {
+  key: 'id',
+  placeholder: '&lt;p style=&quot;text-align:center;color:#718096;&quot;&gt;Lista vacía&lt;/p&gt;'
+});
+
+// Acciones
+$('#alias-add').on('click', (e) =&gt; {
+  e.preventDefault();
+  $.state('aliasList.items', (prev) =&gt; [...(prev || []), { id: Date.now(), text: `Item ${(prev||[]).length + 1}` }]);
+});
+$('#alias-shuffle').on('click', (e) =&gt; {
+  e.preventDefault();
+  const items = [...($.state('aliasList.items') || [])];
+  for (let i = items.length - 1; i &gt; 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [items[i], items[j]] = [items[j], items[i]]; }
+  $.state('aliasList.items', items);
+});
+$('#alias-clear').on('click', (e) =&gt; { e.preventDefault(); $.state('aliasList.items', []); });
+
+// Delegación para eliminar
+$.events('#alias-list', 'click', '.btn-eliminar', (e) =&gt; {
+  e.preventDefault();
+  const $item = $(e.target).closest('.task-item');
+  const id = Number($item.data('id'));
+  $.state('aliasList.items', (prev) =&gt; (prev || []).filter(it =&gt; it.id !== id));
+});
+</code></pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">

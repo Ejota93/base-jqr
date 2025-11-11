@@ -1302,6 +1302,11 @@ $.fn.extend({
         return this;
     },
 
+    // Alias semántico de list(): mejora la descubribilidad para listas reactivas
+    reactiveList: function(key, render, options = {}) {
+        return this.list(key, render, options);
+    },
+
     dispatch: function(eventName, detail) {
         return this.trigger(eventName, detail);
     }
