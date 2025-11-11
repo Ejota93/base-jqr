@@ -26,17 +26,21 @@ export function initRefsNS() {
   perfilNs.nombre(estadoNombre).text();
 
   // Botón Guardar: incrementa contador de guardados en el namespace
-  perfilNs.nombre(btnGuardar)
-    .on('click', () => perfilNs.guardadoCount.set(c => (c || 0) + 1), { prevent: true })
-    .watch(c => console.log('Guardado count:', c));
+  // perfilNs.nombre(btnGuardar)
+  //   .on('click', () => perfilNs.guardadoCount.set(c => (c || 0) + 1), { prevent: true })
+  //   .watch(c => console.log('Guardado count:', c));
+ 
+  $.events(btnGuardar, 'click', () => perfilNs.guardadoCount.set(c => (c || 0) + 1), { prevent: true });
+  
+  $.events(btnDestacar, 'click', () => perfilNs.destacado.set(v => !v), { prevent: true });
 
   // Duplicados: aplicar toggle de clase highlight a todos los elementos con data-ref="item"
   perfilNs.destacado(item).toggleClass('highlight');
 
   // Botón para alternar el estado de destacado (namespace)
-  perfilNs.destacado(btnDestacar)
-    // .on('click', () => perfilNs.set('destacado', v => !v), { prevent: true });
-    .on('click', () => perfilNs.destacado.set(v => !v), { prevent: true });
+  // perfilNs.destacado(btnDestacar)
+  //   // .on('click', () => perfilNs.set('destacado', v => !v), { prevent: true });
+  //   .on('click', () => perfilNs.destacado.set(v => !v), { prevent: true });
 
   // Mostrar estado de destacado (namespaced)
   perfilNs.destacado(estadoDestacado)

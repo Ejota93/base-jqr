@@ -37,17 +37,25 @@ export function initRefs() {
   }, { immediate: true });
 
   // Botón Guardar: incrementa contador de guardados
-  btnGuardar.reactive('refsDemo.nombre')
-    .on('click', () => {
-      $.state('refsDemo.guardadoCount', c => (c || 0) + 1);
-    }, { prevent: true });
+  $.events(btnGuardar, 'click', () => {
+    $.state('refsDemo.guardadoCount', c => (c || 0) + 1);
+  }, { prevent: true });
+
+  // btnGuardar.reactive('refsDemo.nombre')
+  //   .on('click', () => {
+  //     $.state('refsDemo.guardadoCount', c => (c || 0) + 1);
+  //   }, { prevent: true });
+
+    
 
   // Duplicados: aplicar toggle de clase highlight a todos los elementos con data-ref="item"
   item.reactive('refsDemo.destacado').toggleClass('highlight');
 
   // Botón para alternar el estado de destacado
-  btnDestacar.reactive('refsDemo.destacado')
-    .on('click', () => $.state('refsDemo.destacado', v => !v), { prevent: true });
+  $.events(btnDestacar, 'click', () => $.state('refsDemo.destacado', v => !v), { prevent: true });
+
+  // btnDestacar.reactive('refsDemo.destacado')
+  //   .on('click', () => $.state('refsDemo.destacado', v => !v), { prevent: true });
 
   // Mostrar estado de destacado
   estadoDestacado.reactive('refsDemo.destacado')

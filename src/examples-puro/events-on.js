@@ -22,21 +22,40 @@ export function initEventsOn() {
 
   // Botones con ergonomía: prevent y once
   if ($inc.length) {
-    $inc.reactive('onDemo.contador').on('click', () => {
+    // $inc.reactive('onDemo.contador').on('click', () => {
+    //   $.state('onDemo.contador', c => (typeof c === 'number' ? c + 1 : 1));
+    // }, { prevent: true });
+
+    // $.events($unit, 'click', '#ev-inc', (e) => {
+
+
+    $.events($inc, 'click', () => {
       $.state('onDemo.contador', c => (typeof c === 'number' ? c + 1 : 1));
     }, { prevent: true });
+
+
   }
 
   if ($dec.length) {
-    $dec.reactive('onDemo.contador').on('click', () => {
+
+    $.events($dec, 'click', () => {
       $.state('onDemo.contador', c => (typeof c === 'number' ? c - 1 : -1));
     }, { prevent: true });
+
+    // $dec.reactive('onDemo.contador').on('click', () => {
+    //   $.state('onDemo.contador', c => (typeof c === 'number' ? c - 1 : -1));
+    // }, { prevent: true });
   }
 
   if ($reset.length) {
     // Ejemplo de once: se ejecuta solo la primera vez
-    $reset.reactive('onDemo.contador').on('click', () => {
+    // $reset.reactive('onDemo.contador').on('click', () => {
+    //   $.state('onDemo.contador', 0);
+    // }, { prevent: true});
+
+    $.events($reset, 'click', () => {
       $.state('onDemo.contador', 0);
-    }, { prevent: true});
+    }, { prevent: true });
+    
   }
 }

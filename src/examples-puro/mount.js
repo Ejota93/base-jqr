@@ -30,7 +30,7 @@ export function initMount() {
       .text();
 
       const $btnInc = $('<button class="btn" style="margin-top:10px;">Incrementar</button>').appendTo($panel);
-      mountNS.count($btnInc).on('click', () => mountNS.count.set(c => (c || 0) + 1), { prevent: true });
+      $.events($btnInc, 'click', () => mountNS.count.set(c => (c || 0) + 1), { prevent: true });
 
       return $panel;
     });
@@ -40,13 +40,13 @@ export function initMount() {
   const $btnHide = $('#btn-mount-hide');
   const $btnToggle = $('#btn-mount-toggle');
   if ($btnShow.length) {
-    mountNS.visible($btnShow).on('click', () => mountNS.visible.set(true), { prevent: true });
+    $.events($btnShow, 'click', () => mountNS.visible.set(true), { prevent: true });
   }
   if ($btnHide.length) {
-    mountNS.visible($btnHide).on('click', () => mountNS.visible.set(false), { prevent: true });
+    $.events($btnHide, 'click', () => mountNS.visible.set(false), { prevent: true });
   }
   if ($btnToggle.length) {
-    mountNS.visible($btnToggle).on('click', () => mountNS.visible.set(v => !v), { prevent: true });
+    $.events($btnToggle, 'click', () => mountNS.visible.set(v => !v), { prevent: true });
   }
 
   const $state = $('#mount-state');

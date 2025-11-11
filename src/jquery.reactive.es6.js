@@ -413,12 +413,6 @@ class ReactiveBinder {
         return this.$el;
     }
 
-    /** Establece el texto con el valor de la clave. */
-    text() { return this._initialAndSubscribe(($el, val) => { $el.text(val); }); }
-
-    /** Establece el HTML con el valor de la clave. */
-    html() { return this._initialAndSubscribe(($el, val) => { $el.html(val); }); }
-
     val() {
         const $el = this.$el;
         // setear valor inicial desde estado
@@ -452,6 +446,12 @@ class ReactiveBinder {
             }
         });
     }
+
+    /** Establece el texto con el valor de la clave. */
+    text() { return this._initialAndSubscribe(($el, val) => { $el.text(val); }); }
+
+    /** Establece el HTML con el valor de la clave. */
+    html() { return this._initialAndSubscribe(($el, val) => { $el.html(val); }); }    
 
     /** Visibilidad condicional: true → mostrar. */
     show() { return this._initialAndSubscribe(($el, val) => { $el.toggle(!!val); }); }
@@ -554,29 +554,29 @@ class ReactiveBinder {
      * opts: { prevent, stop, once }
      * Soporta múltiples eventos separados por espacios o array.
      */
-    on(events, handler, opts = {}) {
-        const evts = Array.isArray(events) ? events : String(events).split(/\s+/).filter(Boolean);
-        const { prevent = false, stop = false, once = false } = opts;
-        evts.forEach((evt) => {
-            const namespaced = `${evt}.reactive`;
-            const wrapper = (e, ...args) => {
-                if (prevent) e.preventDefault();
-                if (stop) e.stopPropagation();
-                try {
-                    handler.call(this.$el[0], e, ...args);
-                } finally {
-                    if (once) {
-                        try { this.$el.off(namespaced, wrapper); } catch (_) {}
-                        // retirar de registro local
-                        this._domEvents = this._domEvents.filter(d => !(d.event === evt && d.handler === wrapper));
-                    }
-                }
-            };
-            this.$el.on(namespaced, wrapper);
-            this._domEvents.push({ event: evt, handler: wrapper });
-        });
-        return this;
-    }
+    // on(events, handler, opts = {}) {
+    //     const evts = Array.isArray(events) ? events : String(events).split(/\s+/).filter(Boolean);
+    //     const { prevent = false, stop = false, once = false } = opts;
+    //     evts.forEach((evt) => {
+    //         const namespaced = `${evt}.reactive`;
+    //         const wrapper = (e, ...args) => {
+    //             if (prevent) e.preventDefault();
+    //             if (stop) e.stopPropagation();
+    //             try {
+    //                 handler.call(this.$el[0], e, ...args);
+    //             } finally {
+    //                 if (once) {
+    //                     try { this.$el.off(namespaced, wrapper); } catch (_) {}
+    //                     // retirar de registro local
+    //                     this._domEvents = this._domEvents.filter(d => !(d.event === evt && d.handler === wrapper));
+    //                 }
+    //             }
+    //         };
+    //         this.$el.on(namespaced, wrapper);
+    //         this._domEvents.push({ event: evt, handler: wrapper });
+    //     });
+    //     return this;
+    // }
 
     /**
      * Observa cambios de la clave del binder con ergonomía de encadenamiento.
@@ -1301,6 +1301,7 @@ $.fn.extend({
 
         return this;
     },
+
     dispatch: function(eventName, detail) {
         return this.trigger(eventName, detail);
     }
