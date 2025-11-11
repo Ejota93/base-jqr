@@ -22,4 +22,22 @@ export function initCounter() {
   $buttons.eq(0).removeAttr('onclick').on('click', inc);
   $buttons.eq(1).removeAttr('onclick').on('click', dec);
   $buttons.eq(2).removeAttr('onclick').on('click', reset);
+
+  // 5) Escuchar eventos despachados desde otros módulos (cross-módulo)
+  //    Usamos $.events sobre document para un único listener por tipo
+  $.events(document, {
+    'contador-inc': (e, $root, detail) => {
+      console.log('llego el evento contador-inc')
+      const step = detail && typeof detail.step === 'number' ? detail.step : 1;
+      $.state('contador', c => (typeof c === 'number' ? c + step : step));
+    },
+    'contador-dec': (e, $root, detail) => {
+      console.log('llego el evento contador-dec') 
+      const step = detail && typeof detail.step === 'number' ? detail.step : 1;
+      $.state('contador', c => (typeof c === 'number' ? c - step : -step));
+    },
+    'contador-reset': () => {
+      $.state('contador', 0);
+    }
+  });
 }

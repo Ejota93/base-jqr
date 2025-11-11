@@ -958,6 +958,181 @@ $.extend({
             }
         });
     }
+    ,
+    /**
+     * Delegación de eventos por root con una sola escucha por tipo de evento.
+     * Uso bloque (mapa):
+     *   $.events(root, {
+     *     'click .btn': (e, $el) => {...},
+     *     'input [data-ref="nombre"]': (e, $el) => {...}
+     *   }, { prevent: true })
+     * Uso unitario:
+     *   $.events(root, 'click', '.btn', handler, { once: true })
+     *   $.events(root, 'click .btn', handler, { stop: true })
+     * Devuelve una función de cleanup que desregistra solo las reglas añadidas.
+     */
+    events: function(root, mapOrEvt, selectorOrHandler, handlerOrOpts, opts) {
+        try {
+            const $root = root && root.jquery ? root : $(root || document);
+            const rootEl = $root[0];
+            if (!rootEl) return function noop(){};
+
+            // Registro global en $ para evitar variables sueltas; WeakMap por GC automático
+            if (!$.__delegation) $.__delegation = new WeakMap();
+            let reg = $.__delegation.get(rootEl);
+            if (!reg) { reg = new Map(); $.__delegation.set(rootEl, reg); }
+
+            function wrap(handler, options = {}) {
+                const { throttle = 0, debounce = 0, prevent = false, stop = false, once = false } = options;
+                let lastCall = 0;
+                let debTimer = null;
+                let ranOnce = false;
+                return function(e, $match, ...args) {
+                    if (once && ranOnce) return;
+                    const now = Date.now();
+                    const exec = () => {
+                        if (prevent) e.preventDefault();
+                        if (stop) e.stopPropagation();
+                        try { handler.call($match && $match[0], e, $match, ...args); } catch (err) { console.error('[$.events] error en handler', err); }
+                        if (once) ranOnce = true;
+                    };
+                    if (throttle && throttle > 0) {
+                        if (now - lastCall >= throttle) { lastCall = now; exec(); }
+                        return;
+                    }
+                    if (debounce && debounce > 0) {
+                        if (debTimer) clearTimeout(debTimer);
+                        debTimer = setTimeout(exec, debounce);
+                        return;
+                    }
+                    exec();
+                };
+            }
+
+            function ensureRootListener(type) {
+                if (!reg.has(type)) {
+                    reg.set(type, []);
+                    // Un único listener por tipo, namespaced para limpieza futura
+                    $root.on(`${type}.reactive`, function(e, ...args) {
+                        const rules = reg.get(type);
+                        if (!rules || rules.length === 0) return;
+                        // Despacho: buscar el closest que matchee selector dentro del root
+                        for (let i = 0; i < rules.length; i++) {
+                            const r = rules[i];
+                            const $match = r.selector ? $(e.target).closest(r.selector, rootEl) : $root;
+                            if ($match && $match.length) {
+                                r.fn(e, $match, ...args);
+                                // Si la regla es once, marcar para cleanup al final
+                                if (r.once) r.__remove = true;
+                            }
+                        }
+                        // Cleanup de reglas once ejecutadas
+                        const remaining = rules.filter(r => !r.__remove);
+                        reg.set(type, remaining);
+                        if (remaining.length === 0) {
+                            // Si se vacía el tipo, desenganchar listener root
+                            $root.off(`${type}.reactive`);
+                            reg.delete(type);
+                        }
+                    });
+                }
+            }
+
+            // Normalización de entrada y compilación de reglas
+            let additions = [];
+            if (typeof mapOrEvt === 'object' && mapOrEvt != null) {
+                // Bloque con mapa: clave puede ser 'tipo selector' o solo 'tipo'
+                const baseOpts = (typeof selectorOrHandler === 'object') ? selectorOrHandler : {};
+                Object.keys(mapOrEvt).forEach(key => {
+                    const handler = mapOrEvt[key];
+                    if (typeof handler !== 'function') return;
+                    const parts = String(key).trim().split(/\s+/, 2);
+                    const type = parts[0];
+                    const selector = parts.length > 1 ? parts[1] : null;
+                    const opt = { ...baseOpts };
+                    additions.push({ type, selector, handler, opts: opt });
+                });
+            } else if (typeof mapOrEvt === 'string') {
+                // Unitaria: 'tipo', selector?, handler, opts
+                let type, selector = null, handler, opt = {};
+                const evtStr = mapOrEvt.trim();
+                if (evtStr.includes(' ')) {
+                    // Forma compacta: 'tipo selector'
+                    const parts = evtStr.split(/\s+/, 2);
+                    type = parts[0]; selector = parts[1];
+                    handler = (typeof selectorOrHandler === 'function') ? selectorOrHandler : null;
+                    opt = (typeof handlerOrOpts === 'object') ? handlerOrOpts : {};
+                } else {
+                    type = evtStr;
+                    if (typeof selectorOrHandler === 'string') {
+                        selector = selectorOrHandler;
+                        handler = (typeof handlerOrOpts === 'function') ? handlerOrOpts : null;
+                        opt = (typeof opts === 'object') ? opts : {};
+                    } else {
+                        handler = (typeof selectorOrHandler === 'function') ? selectorOrHandler : null;
+                        opt = (typeof handlerOrOpts === 'object') ? handlerOrOpts : {};
+                    }
+                }
+                if (type && handler) additions.push({ type, selector, handler, opts: opt });
+            }
+
+            // Registrar reglas y asegurar listeners por tipo
+            const tokens = [];
+            additions.forEach(({ type, selector, handler, opts = {} }) => {
+                ensureRootListener(type);
+                const rules = reg.get(type);
+                const fn = wrap(handler, opts);
+                const rule = { selector, fn, once: !!opts.once };
+                rules.push(rule);
+                tokens.push({ type, rule });
+            });
+
+            // Cleanup parcial: elimina solo las reglas añadidas por esta llamada
+            return function cleanup() {
+                tokens.forEach(({ type, rule }) => {
+                    const rules = reg.get(type);
+                    if (!rules) return;
+                    const idx = rules.indexOf(rule);
+                    if (idx >= 0) rules.splice(idx, 1);
+                    if (rules.length === 0) {
+                        $root.off(`${type}.reactive`);
+                        reg.delete(type);
+                    }
+                });
+            };
+        } catch (e) {
+            console.error('[$.events] error inesperado', e);
+            return function noop(){};
+        }
+    }
+    ,
+    /**
+     * Emite eventos jQuery con payload opcional.
+     * Uso:
+     *   $.dispatch('#root', 'custom:event', { id: 1 })
+     *   $.dispatch('custom:event', { id: 1 }) // target por defecto: document
+     */
+    dispatch: function(targetOrEvent, maybeEventName, detail) {
+        try {
+            // Forma 1: $.dispatch('evento') o $.dispatch('evento', payload)
+            if (typeof targetOrEvent === 'string' && (typeof maybeEventName === 'undefined' || typeof maybeEventName !== 'string')) {
+                const eventName = targetOrEvent;
+                const payload = Array.isArray(maybeEventName) ? maybeEventName : (typeof maybeEventName === 'undefined' ? [] : [maybeEventName]);
+                $(document).trigger(eventName, payload);
+                return $;
+            }
+            // Forma 2: $.dispatch(target, 'evento', payload)
+            const $t = targetOrEvent && targetOrEvent.jquery ? targetOrEvent : $(targetOrEvent || document);
+            if (!$t.length) return $;
+            const eventName = maybeEventName;
+            const payload = Array.isArray(detail) ? detail : (typeof detail === 'undefined' ? [] : [detail]);
+            $t.trigger(eventName, payload);
+            return $;
+        } catch (e) {
+            console.error('[$.dispatch] error inesperado', e);
+            return $;
+        }
+    }
 });
 
 // Exponer objeto para depuración como en la versión original
@@ -1125,6 +1300,9 @@ $.fn.extend({
         $container.data('reactive-list-unsubscribe', unsubscribe);
 
         return this;
+    },
+    dispatch: function(eventName, detail) {
+        return this.trigger(eventName, detail);
     }
 });
 

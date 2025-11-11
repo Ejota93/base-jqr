@@ -7,6 +7,8 @@ import { initColors } from './colors.js';
 import { initConsole } from './console.js';
 import { initNamespaces } from './namespaces.js';
 import { initEventsOn } from './events-on.js';
+import { initEventsDelegation } from './events-delegation.js';
+import { initDispatch } from './dispatch.js';
 import { initMap } from './map.js';
 import { initRefs } from './refs.js';
 import { initRefsNS } from './refs-ns.js';
@@ -45,6 +47,8 @@ $(function() {
     initConsole();
     initNamespaces();
     initEventsOn();
+    initEventsDelegation();
+    initDispatch();
     initMap();
     initRefs();
     initRefsNS();

@@ -576,6 +576,91 @@ $.computed(comp.k('bmiLabel'), [comp.k('heightCm'), comp.k('weightKg')], (hCm, w
                     </div>
                 </div>
             </div>
+            
+            <!-- Demo 14: Eventos Delegados con $.events() -->
+            <div class="card">
+                <h2 class="card-title">14. Eventos Delegados con $.events()</h2>
+                <div class="card-content">
+                    <p>Registra un solo listener por tipo de evento en el contenedor y despacha por selector. Ideal para listas y secciones.</p>
+                    <div id="events-unit" style="margin-bottom:10px;">
+                        <div id="ev-count-display" class="reactive-element">0</div>
+                        <div class="btn-group">
+                            <button id="ev-inc" class="btn">Incrementar</button>
+                            <button id="ev-dec" class="btn btn-secondary">Decrementar</button>
+                            <button id="ev-reset" class="btn btn-tertiary">Resetear (once)</button>
+                        </div>
+                        <div class="state-display">Estado (evDemo.count): <span id="ev-count-state">0</span></div>
+                    </div>
+
+                    <div id="events-root">
+                        <div class="btn-group" style="margin-bottom:8px;">
+                            <button id="ev-toggle-hl" class="btn btn-tertiary">Alternar destacado</button>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <div class="reactive-element ev-item" style="flex:1;">Item 1</div>
+                            <div class="reactive-element ev-item" style="flex:1;">Item 2</div>
+                            <div class="reactive-element ev-item" style="flex:1;">Item 3</div>
+                        </div>
+                    </div>
+
+                    <div class="code-example">
+<pre><code>// Uso unitario: registrar eventos puntuales
+const $unit = $('#events-unit');
+$.events($unit, 'click', '#ev-inc', (e) =&gt; $.state('evDemo.count', c =&gt; (c || 0) + 1), { prevent: true });
+$.events($unit, 'click', '#ev-dec', (e) =&gt; $.state('evDemo.count', c =&gt; (c || 0) - 1), { prevent: true });
+$.events($unit, 'click #ev-reset', (e) =&gt; $.state('evDemo.count', 0), { prevent: true, once: true });
+
+// Uso con mapa: wiring declarativo con un único listener por tipo
+const cleanup = $.events('#events-root', {
+  'click #ev-toggle-hl': () =&gt; $.state('evDemo.highlight', v =&gt; !v),
+  'click .ev-item': (e, $el) =&gt; { $el.addClass('highlight'); setTimeout(() =&gt; $el.removeClass('highlight'), 300); }
+}, { prevent: true });
+// cleanup(); // desregistra solo estas reglas
+</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo 15: Emisión de eventos con $.dispatch() -->
+            <div class="card">
+                <h2 class="card-title">15. Emisión con $.dispatch()</h2>
+                <div class="card-content" id="dispatch-root">
+                    <p>Emite eventos personalizados y deja que otros módulos los escuchen (p. ej. el Contador).</p>
+                    <div class="btn-group" style="margin-bottom:10px;">
+                        <button id="dispatch-inc" class="btn">Emitir contador:inc</button>
+                        <button id="dispatch-dec" class="btn btn-secondary">Emitir contador:dec</button>
+                        <button id="dispatch-reset" class="btn btn-tertiary">Emitir contador:reset</button>
+                    </div>
+                    <div class="state-display">
+                        Nota: la tarjeta 1 (Contador) escucha estos eventos y actualiza su estado.
+                    </div>
+                    <div class="code-example">
+<pre><code>// Emisión global por defecto
+$.dispatch('contador-inc', { step: 1 });
+$.dispatch('contador-dec', { step: 1 });
+$.dispatch('contador-reset');
+
+// Forma explícita: especificando el target
+$.dispatch(document, 'contador-inc', { step: 1 });
+$.dispatch(document, 'contador-dec', { step: 1 });
+$.dispatch(document, 'contador-reset');
+
+// Escucha cross-módulo (ejecutado en el módulo del contador)
+$.events(document, {
+  'contador-inc': (e, $root, detail) =&gt; {
+    const step = detail?.step || 1;
+    $.state('contador', c =&gt; (c || 0) + step);
+  },
+  'contador-dec': (e, $root, detail) =&gt; {
+    const step = detail?.step || 1;
+    $.state('contador', c =&gt; (c || 0) - step);
+  },
+  'contador-reset': () =&gt; $.state('contador', 0)
+});
+</code></pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">
