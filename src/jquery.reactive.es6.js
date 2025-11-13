@@ -31,6 +31,7 @@ class ReactiveState {
         this._updateQueue = new Set();
         this._isUpdating = false;
         this._batchMode = false;
+        this._contextRoot = null;
         this.config = {
             prefix: 'st-',
             debug: false,
@@ -214,12 +215,13 @@ class ReactiveState {
     _updateDOM(key) {
         const value = this._states[key];
         const prefix = this.config.prefix;
+        const ctx = this._contextRoot || document;
 
         // Estilo: atributo específico por clave (p.ej. <span st-count="text">)
         // Evitar claves con caracteres no válidos (p.ej. nombres con '.') que rompen el selector
         const attrName = `${prefix}${key}`;
         if (isSafeAttrName(attrName)) {
-            $(`[${attrName}]`).each(function() {
+            $(`[${attrName}]`, ctx).each(function() {
                 const $el = $(this);
                 const attr = $el.attr(attrName);
                 if (attr) {
@@ -231,7 +233,7 @@ class ReactiveState {
         // Selector para atributos específicos como `st-text="count"`
         const specificAttrSelector = `[${prefix}text="${key}"], [${prefix}html="${key}"], [${prefix}value="${key}"], [${prefix}class="${key}"], [${prefix}show="${key}"], [${prefix}hide="${key}"], [${prefix}enabled="${key}"], [${prefix}disabled="${key}"]`;
         
-        $(specificAttrSelector).each(function() {
+        $(specificAttrSelector, ctx).each(function() {
             const $el = $(this);
             const attrs = this.attributes;
             for (let i = 0; i < attrs.length; i++) {
@@ -244,7 +246,7 @@ class ReactiveState {
         });
 
         // Escaneo dinámico para atributos como `st-css-color="myColorState"`
-        $(`*`).each(function() {
+        $(ctx).find(`*`).each(function() {
             const el = this;
             const $el = $(this);
             const attrs = el.attributes;
@@ -349,6 +351,18 @@ class ReactiveBinder {
         this._mapFns = [];
         // guardar referencia para potencial unbind externo
         this.$el.data('reactive-binder', this);
+        // Resolver instancia local si el elemento está dentro de un contenedor con ensureState
+        try {
+            const $ancestors = this.$el.parents().add(this.$el);
+            let found = null;
+            for (let i = 0; i < $ancestors.length; i++) {
+                const inst = $( $ancestors[i] ).data('reactive-instance');
+                if (inst) { found = inst; break; }
+            }
+            this._instance = found || null;
+        } catch (_) {
+            this._instance = null;
+        }
     }
 
     /** Aplica transformaciones encadenadas (map) al valor antes de renderizar. */
@@ -375,7 +389,8 @@ class ReactiveBinder {
     }
 
     _subscribe(handler) {
-        const unsub = reactiveState.subscribe(this.key, (val) => {
+        const store = this._instance || reactiveState;
+        const unsub = store.subscribe(this.key, (val) => {
             const mapped = this._applyTransforms(val);
             try { handler(this.$el, mapped); } catch (e) { console.error('[ReactiveBinder] handler error', e); }
         });
@@ -385,7 +400,8 @@ class ReactiveBinder {
 
     _initialAndSubscribe(handler) {
         // Render inicial
-        const initial = reactiveState.getState(this.key);
+        const store = this._instance || reactiveState;
+        const initial = store.getState(this.key);
         if (initial !== undefined) {
             const mapped = this._applyTransforms(initial);
             try { handler(this.$el, mapped); } catch (e) { console.error('[ReactiveBinder] initial handler error', e); }
@@ -416,7 +432,8 @@ class ReactiveBinder {
     val() {
         const $el = this.$el;
         // setear valor inicial desde estado
-        const initialRaw = reactiveState.getState(this.key);
+        const store = this._instance || reactiveState;
+        const initialRaw = store.getState(this.key);
         const initial = this._applyTransforms(initialRaw);
         if ($el.is('input[type="checkbox"]')) {
             $el.prop('checked', !!initial);
@@ -435,7 +452,7 @@ class ReactiveBinder {
             } else {
                 return;
             }
-            reactiveState.setState(this.key, value);
+            store.setState(this.key, value);
         });
 
         return this._subscribe(($el2, newValue) => {
@@ -1168,6 +1185,86 @@ $(function() {
 
 // Extensiones de elementos: helpers declarativos e imperativos
 $.fn.extend({
+    ensureState: function(initialState = {}, options) {
+        return this.each(function() {
+            const $el = $(this);
+            let instance = $el.data('reactive-instance');
+            if (!instance) {
+                instance = new ReactiveState();
+                instance._contextRoot = $el[0];
+                instance.init(initialState || {});
+                if (options && typeof options === 'object') {
+                    instance.configure(options);
+                }
+                $el.data('reactive-instance', instance);
+                // Two-way local dentro del contexto para st-value
+                const pfx = instance.config.prefix;
+                $el.on('input.reactiveLocal change.reactiveLocal', `[${pfx}value]`, function() {
+                    const stateKey = $(this).attr(`${pfx}value`);
+                    if (stateKey) {
+                        const newVal = $(this).is('input[type="checkbox"]') ? $(this).prop('checked') : $(this).val();
+                        instance.setState(stateKey, newVal);
+                    }
+                });
+            } else {
+                // actualizar contexto por si se re-monta en otro lugar
+                instance._contextRoot = $el[0];
+                if (initialState && Object.keys(initialState).length > 0) {
+                    instance.setStates(initialState);
+                }
+                if (options && typeof options === 'object') {
+                    instance.configure(options);
+                }
+            }
+        });
+    },
+    
+    state: function(key, value) {
+        const $first = this.eq(0);
+        let instance = $first.data('reactive-instance');
+        if (!instance) {
+            instance = new ReactiveState();
+            instance.init();
+            $first.data('reactive-instance', instance);
+        }
+        if (arguments.length === 0) {
+            return instance.getState();
+        }
+        if (typeof key === 'string' && arguments.length === 1) {
+            return instance.getState(key);
+        }
+        if (typeof key === 'string' && arguments.length === 2) {
+            if (typeof value === 'function' && instance.config.allowUpdaterFn !== false) {
+                try {
+                    const prev = instance.getState(key);
+                    const next = value(prev);
+                    instance.setState(key, next);
+                } catch (_) {}
+            } else {
+                instance.setState(key, value);
+            }
+            return this;
+        }
+        if (typeof key === 'object') {
+            const updates = {};
+            try {
+                Object.keys(key).forEach(function(k) {
+                    const v = key[k];
+                    if (typeof v === 'function' && instance.config.allowUpdaterFn !== false) {
+                        const prev = instance.getState(k);
+                        updates[k] = v(prev);
+                    } else {
+                        updates[k] = v;
+                    }
+                });
+                instance.setStates(updates);
+            } catch (_) {
+                instance.setStates(key);
+            }
+            return this;
+        }
+        return this;
+    },
     // Atributos declarativos estilo bind/unbind para paridad
     /**
      * Vincula un elemento a una clave con una directiva (por defecto `text`).

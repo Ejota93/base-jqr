@@ -2,11 +2,10 @@
   "name": "jquery-reactive-state",
   "version": "1.0.0",
   "description": "Una mini biblioteca de estados reactivos para jQuery con API imperativa",
-  "main": "src/jquery.reactive.js",
-  "module": "src/jquery.reactive.js",
+  "main": "src/jquery.reactive.es6.js",
+  "module": "src/jquery.reactive.es6.js",
   "files": [
-    "src/jquery.reactive.js",
-    "src/jquery.reactive.min.js",
+    "src/jquery.reactive.es6.js",
     "src/polyfills.js",
     "README.md"
   ],

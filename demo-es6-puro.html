@@ -716,6 +716,45 @@ $.events('#alias-list', 'click', '.btn-eliminar', (e) =&gt; {
                     </div>
                 </div>
             </div>
+            <div class="card">
+                <h2 class="card-title">17. Estados locales con ensureState()</h2>
+                <div class="card-content">
+                    <div id="local-state-1" class="reactive-element">
+                        <div>
+                            <span id="ls1-count">0</span>
+                        </div>
+                        <input id="ls1-input-name" type="text" placeholder="Nombre">
+                        <div>Nombre: <span id="ls1-name"></span></div>
+                        <div class="btn-group" style="margin-top:10px;">
+                            <button id="ls1-inc" class="btn">+</button>
+                            <button id="ls1-dec" class="btn btn-secondary">-</button>
+                            <button id="ls1-reset" class="btn btn-tertiary">Reset</button>
+                        </div>
+                    </div>
+
+                    <div id="local-state-2" class="reactive-element" style="margin-top:15px;">
+                        <div>
+                            <span id="ls2-count">100</span>
+                        </div>
+                        <input id="ls2-input-label" type="text" placeholder="Etiqueta">
+                        <div>Etiqueta: <span id="ls2-label"></span></div>
+                        <div class="btn-group" style="margin-top:10px;">
+                            <button id="ls2-inc" class="btn">+10</button>
+                            <button id="ls2-dec" class="btn btn-secondary">-10</button>
+                            <button id="ls2-reset" class="btn btn-tertiary">Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="code-example">
+<pre><code>$('#local-state-1').ensureState({ count: 0, name: '' });
+$('#local-state-2').ensureState({ count: 100, label: '' }, { debug: true });
+
+$('#local-state-1').state('count', c => (c||0)+1);
+$('#local-state-2').state('count', c => (c||0)+10);
+</code></pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">

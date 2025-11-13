@@ -64,104 +64,52 @@
      * - flags de render: `_isUpdating`, `_autoRender`, `_batchMode`.
      * - `config`: prefijo de atributos y parámetros de rendimiento.
      */
-    // Centralized state storage
-    const ReactiveState = {
-        // State storage
-        _states: {},
-        
-        // Subscriptions storage
-        _subscriptions: {},
-        
-        // Batch update queue
-        _updateQueue: [],
-        
-        // Rendering flags
-        _isUpdating: false,
-        _autoRender: true,
-        _batchMode: false,
-        
-        // Configuration
-        config: {
-            /** Prefijo para atributos declarativos, por defecto 'st-' */
-            prefix: 'st-',
-            /** Si true, loguea cambios en consola */
-            debug: false,
-            /** Timeout de batching (~60fps) para agrupar renders */
-            batchTimeout: 16, // ~60fps
-            /** Profundidad máxima de actualizaciones anidadas (protección) */
-            maxUpdateDepth: 100,
-            /** Permite usar updater functions en $.state('key', prev => next) */
-            allowUpdaterFn: true
-        },
-        
-        /**
-         * Inicializa el estado global.
-         * @param {Object} [initialState={}] Estado inicial por clave.
-         * @returns {ReactiveState} this
-         */
-        init: function(initialState = {}) {
+    class ReactiveState {
+        constructor() {
+            this._states = {};
+            this._subscriptions = {};
+            this._updateQueue = [];
+            this._isUpdating = false;
+            this._autoRender = true;
+            this._batchMode = false;
+            this.config = {
+                prefix: 'st-',
+                debug: false,
+                batchTimeout: 16,
+                maxUpdateDepth: 100,
+                allowUpdaterFn: true
+            };
+        }
+        init(initialState = {}) {
             this._states = { ...initialState };
             this._subscriptions = {};
             this._updateQueue = [];
             this._isUpdating = false;
             return this;
-        },
-        
-        /**
-         * Obtiene el estado por clave o todo el objeto si no se pasa clave.
-         * @param {string} [key] Clave opcional.
-         * @returns {*} Valor de la clave o copia del estado completo.
-         */
-        getState: function(key) {
+        }
+        getState(key) {
             if (key === undefined) {
                 return { ...this._states };
             }
             return this._states[key];
-        },
-        
-        /**
-         * Establece el valor de una clave y notifica suscripciones.
-         * No re-renderiza si `silent` es true.
-         * @param {string} key Clave de estado.
-         * @param {*} value Nuevo valor.
-         * @param {boolean} [silent=false] Si true, no dispara suscripciones.
-         * @returns {ReactiveState} this
-         */
-        setState: function(key, value, silent = false) {
+        }
+        setState(key, value, silent = false) {
             const oldValue = this._states[key];
-            
-            // Evitar renders si no hay cambio
             if (oldValue === value) {
                 return this;
             }
-            
-            // Actualiza estado
             this._states[key] = value;
-            
-            // Log de depuración
             if (this.config.debug) {
                 console.log(`[ReactiveState] ${key}:`, oldValue, '->', value);
             }
-            
-            // Dispara suscripciones
             if (!silent) {
                 this._triggerSubscriptions(key, value, oldValue);
             }
-            
             return this;
-        },
-        
-        /**
-         * Establece múltiples claves en batch.
-         * Agrupa las suscripciones y el renderizado en una sola pasada.
-         * @param {Object} states Objeto clave-valor a aplicar.
-         * @param {boolean} [silent=false] Si true, no notifica.
-         * @returns {ReactiveState} this
-         */
-        setStates: function(states, silent = false) {
+        }
+        setStates(states, silent = false) {
             this._batchMode = true;
             const changedKeys = [];
-            
             for (const [key, value] of Object.entries(states)) {
                 const oldValue = this._states[key];
                 if (oldValue !== value) {
@@ -169,57 +117,33 @@
                     changedKeys.push(key);
                 }
             }
-            
             if (!silent && changedKeys.length > 0) {
-                // Procesa todas las suscripciones en bloque
                 this._processBatchUpdate(changedKeys);
             }
-            
             this._batchMode = false;
             return this;
-        },
-        
-        /**
-         * Suscribe un callback a cambios de una clave.
-         * @param {string} key Clave a observar.
-         * @param {Function} callback (newValue, oldValue, key) => void
-         * @returns {Function} unsubscribe() para quitar la suscripción.
-         */
-        subscribe: function(key, callback) {
+        }
+        subscribe(key, callback) {
             if (!this._subscriptions[key]) {
                 this._subscriptions[key] = [];
             }
-            // Valida callback
             if (typeof callback !== 'function') {
                 if (this.config.debug) {
                     console.warn(`[ReactiveState] Ignoring subscription: callback is not a function for key '${key}'`, callback);
                 }
-                // No-op unsubscribe
                 return () => {};
             }
             this._subscriptions[key].push(callback);
-            
-            // Retorna función para desuscribir
             return () => {
                 const index = this._subscriptions[key].indexOf(callback);
                 if (index > -1) {
                     this._subscriptions[key].splice(index, 1);
                 }
             };
-        },
-        
-        /**
-         * Dispara los callbacks suscritos a una clave.
-         * También programa render si el auto-render está activo.
-         * @private
-         * @param {string} key
-         * @param {*} newValue
-         * @param {*} oldValue
-         */
-        _triggerSubscriptions: function(key, newValue, oldValue) {
+        }
+        _triggerSubscriptions(key, newValue, oldValue) {
             const subs = this._subscriptions[key];
             if (Array.isArray(subs) && subs.length > 0) {
-                // Limpia entradas inválidas antes de disparar
                 this._subscriptions[key] = subs.filter(cb => typeof cb === 'function');
                 this._subscriptions[key].forEach(cb => {
                     try {
@@ -229,93 +153,47 @@
                     }
                 });
             }
-            
-            // Auto-render si está habilitado y no estamos en modo batch
             if (this._autoRender && !this._batchMode) {
                 this.queueRender(key);
             }
-        },
-        
-        /**
-         * Procesa suscripciones en lote y programa render de todas las claves cambiadas.
-         * @private
-         * @param {string[]} changedKeys Claves que cambiaron.
-         */
-        _processBatchUpdate: function(changedKeys) {
-            // Dispara todas las suscripciones
+        }
+        _processBatchUpdate(changedKeys) {
             changedKeys.forEach(key => {
                 this._triggerSubscriptions(key, this._states[key], undefined);
             });
-            
-            // Programa render de todas
             if (this._autoRender) {
                 changedKeys.forEach(key => this.queueRender(key));
             }
-        },
-        
-        /**
-         * Encola una clave para renderizado.
-         * No encola duplicados.
-         * @param {string} key
-         */
-        queueRender: function(key) {
+        }
+        queueRender(key) {
             if (this._updateQueue.indexOf(key) === -1) {
                 this._updateQueue.push(key);
             }
-            
             if (!this._isUpdating) {
                 this._scheduleRender();
             }
-        },
-        
-        /**
-         * Programa el procesamiento de la cola de render con batching.
-         * Usa `setTimeout(batchTimeout)` para agrupar múltiples actualizaciones.
-         * @private
-         */
-        _scheduleRender: function() {
+        }
+        _scheduleRender() {
             if (this._updateQueue.length === 0) return;
-            
             this._isUpdating = true;
-            
             setTimeout(() => {
                 this._processRenderQueue();
                 this._isUpdating = false;
             }, this.config.batchTimeout);
-        },
-        
-        /**
-         * Procesa la cola de claves a renderizar.
-         * @private
-         */
-        _processRenderQueue: function() {
+        }
+        _processRenderQueue() {
             const queue = [...this._updateQueue];
             this._updateQueue = [];
-            
             queue.forEach(key => {
                 this._updateDOM(key);
             });
-        },
-        
-        /**
-         * Actualiza el DOM para una clave dada.
-         * Soporta:
-         * - Estilo `st-<key>="text|html|value|class|show|hide|enabled|disabled|attr-*|prop-*|css-*|data-*"`.
-         * - Estilo vinculante `st-text="key"`, `st-css-color="key"`, etc.
-         * - Escaneo genérico de todos los atributos `st-*` (más costoso).
-         * Dispara el evento `state:changed:<key>` en `document`.
-         * @private
-         * @param {string} key Clave a renderizar.
-         */
-        _updateDOM: function(key) {
+        }
+        _updateDOM(key) {
             const value = this._states[key];
             const prefix = this.config.prefix;
-            
-            // Estilo: atributo específico por clave (p.ej. <span st-count="text">)
             $(`[${prefix}${key}]`).each(function() {
                 const $el = $(this);
                 const attr = $el.attr(`${prefix}${key}`);
-                
                 switch (attr) {
                     case 'text':
                         $el.text(value);
@@ -342,7 +220,6 @@
                         $el.prop('disabled', value);
                         break;
                     default:
-                        // Atributos genéricos
                         if (attr && attr.startsWith('attr-')) {
                             const attrName = attr.substring(5);
                             $el.attr(attrName, value);
@@ -359,8 +236,6 @@
                         break;
                 }
             });
-            
-            // Estilo: vinculante genérico (p.ej. <span st-text="count">)
             $(`[${prefix}text="${key}"]`).each(function() { $(this).text(value); });
             $(`[${prefix}html="${key}"]`).each(function() { $(this).html(value); });
             $(`[${prefix}value="${key}"]`).each(function() { $(this).val(value); });
@@ -369,9 +244,6 @@
             $(`[${prefix}hide="${key}"]`).each(function() { $(this).toggle(!value); });
             $(`[${prefix}enabled="${key}"]`).each(function() { $(this).prop('disabled', !value); });
             $(`[${prefix}disabled="${key}"]`).each(function() { $(this).prop('disabled', value); });
-
-            // Escaneo dinámico: detecta cualquier atributo `st-*` cuyo valor sea `key`
-            // Nota: es más costoso; útil para `st-css-*` y variantes personalizadas.
             $('*').each(function() {
                 const el = this;
                 const $el = $(this);
@@ -381,7 +253,6 @@
                     if (!a || !a.name) continue;
                     if (a.value !== key) continue;
                     if (!a.name.startsWith(prefix)) continue;
-
                     const spec = a.name.substring(prefix.length);
                     if (spec === 'text') { $el.text(value); continue; }
                     if (spec === 'html') { $el.html(value); continue; }
@@ -391,7 +262,6 @@
                     if (spec === 'hide') { $el.toggle(!value); continue; }
                     if (spec === 'enabled') { $el.prop('disabled', !value); continue; }
                     if (spec === 'disabled') { $el.prop('disabled', value); continue; }
-
                     if (spec.startsWith('attr-')) {
                         const attrName = spec.substring(5);
                         $el.attr(attrName, value);
@@ -414,48 +284,30 @@
                     }
                 }
             });
-            
-            // Evento personalizado para observers externos
             $(document).trigger(`state:changed:${key}`, [value, key]);
-        },
-        
-        /**
-         * Render manual: si se pasa `key`, sólo esa clave; si no, todas.
-         * @param {string} [key]
-         * @returns {ReactiveState} this
-         */
-        render: function(key) {
+        }
+        render(key) {
             if (key) {
                 this._updateDOM(key);
             } else {
-                // Renderiza todo el estado actual
                 Object.keys(this._states).forEach(k => this._updateDOM(k));
             }
             return this;
-        },
-        
-        /**
-         * Configura el objeto `config`.
-         * @param {Object} options Opciones parciales (prefix, debug, batchTimeout...).
-         * @returns {ReactiveState} this
-         */
-        configure: function(options) {
+        }
+        configure(options) {
             this.config = { ...this.config, ...options };
             return this;
-        },
-        
-        /**
-         * Resetea completamente el estado y colas.
-         * @returns {ReactiveState} this
-         */
-        reset: function() {
+        }
+        reset() {
             this._states = {};
             this._subscriptions = {};
             this._updateQueue = [];
             this._isUpdating = false;
             return this;
         }
-    };
+    }
+
+    const globalState = new ReactiveState();
 
     // jQuery plugin extensions
     $.extend({
@@ -469,25 +321,25 @@
          */
         state: function(key, value) {
             if (arguments.length === 0) {
-                return ReactiveState.getState();
+                return globalState.getState();
             }
             
             if (typeof key === 'string' && arguments.length === 1) {
-                return ReactiveState.getState(key);
+                return globalState.getState(key);
             }
             
             if (typeof key === 'string' && arguments.length === 2) {
                 // Soporte updater function: $.state('key', prev => next)
-                if (typeof value === 'function' && ReactiveState.config.allowUpdaterFn !== false) {
+                if (typeof value === 'function' && globalState.config.allowUpdaterFn !== false) {
                     try {
-                        const prev = ReactiveState.getState(key);
+                        const prev = globalState.getState(key);
                         const next = value(prev);
-                        ReactiveState.setState(key, next);
+                        globalState.setState(key, next);
                     } catch (err) {
                         console.error('[ReactiveState] Error applying updater function for', key, err);
                     }
                 } else {
-                    ReactiveState.setState(key, value);
+                    globalState.setState(key, value);
                 }
                 return $;
             }
@@ -498,18 +350,18 @@
                 try {
                     Object.keys(key).forEach(function(k) {
                         const v = key[k];
-                        if (typeof v === 'function' && ReactiveState.config.allowUpdaterFn !== false) {
-                            const prev = ReactiveState.getState(k);
+                        if (typeof v === 'function' && globalState.config.allowUpdaterFn !== false) {
+                            const prev = globalState.getState(k);
                             updates[k] = v(prev);
                         } else {
                             updates[k] = v;
                         }
                     });
-                    ReactiveState.setStates(updates);
+                    globalState.setStates(updates);
                 } catch (err) {
                     console.error('[ReactiveState] Error applying batch updates', err);
                     // Fallback: aplicar como estaba para no romper
-                    ReactiveState.setStates(key);
+                    globalState.setStates(key);
                 }
                 return $;
             }
@@ -528,14 +380,14 @@
             if (typeof key === 'function') {
                 // Observador global para claves existentes
                 const globalCallback = key;
-                const allKeys = Object.keys(ReactiveState._states);
+                const allKeys = Object.keys(globalState._states);
                 allKeys.forEach(k => {
-                    ReactiveState.subscribe(k, (newVal, oldVal) => {
+                    globalState.subscribe(k, (newVal, oldVal) => {
                         globalCallback(newVal, oldVal, k);
                     });
                 });
             } else if (typeof key === 'string' && typeof callback === 'function') {
-                ReactiveState.subscribe(key, callback);
+                globalState.subscribe(key, callback);
             }
             return $;
         },
@@ -575,7 +427,7 @@
                 function recompute() {
                     var values;
                     try {
-                        values = depKeys.map(function(k){ return ReactiveState.getState(k); });
+                        values = depKeys.map(function(k){ return globalState.getState(k); });
                     } catch (e) {
                         console.error('[$.computed] error obteniendo dependencias', e);
                         return;
@@ -588,18 +440,18 @@
                         return;
                     }
                     if (distinct) {
-                        var prev = ReactiveState.getState(outKey);
+                        var prev = globalState.getState(outKey);
                         if (next === prev) return;
                     }
                     try {
-                        ReactiveState.setState(outKey, next, silent);
+                        globalState.setState(outKey, next, silent);
                     } catch (e) {
                         console.error('[$.computed] error al setear clave derivada', e);
                     }
                 }
 
                 // Suscribir a todas las dependencias
-                var unsubs = depKeys.map(function(k){ return ReactiveState.subscribe(k, recompute); });
+                var unsubs = depKeys.map(function(k){ return globalState.subscribe(k, recompute); });
                 // Render inicial
                 if (immediate) recompute();
                 // Cleanup
@@ -616,7 +468,7 @@
          * Fuerza renderizado (una clave o todas).
          */
         render: function(key) {
-            ReactiveState.render(key);
+            globalState.render(key);
             return $;
         },
         
@@ -624,7 +476,7 @@
          * Inicializa el estado con un objeto.
          */
         reactiveInit: function(initialState) {
-            ReactiveState.init(initialState);
+            globalState.init(initialState);
             return $;
         },
         
@@ -632,7 +484,7 @@
          * Configura opciones del sistema reactivo.
          */
         reactiveConfig: function(options) {
-            ReactiveState.configure(options);
+            globalState.configure(options);
             return $;
         },
         
@@ -640,13 +492,101 @@
          * Resetea por completo el estado.
          */
         reactiveReset: function() {
-            ReactiveState.reset();
+            globalState.reset();
             return $;
         }
     });
 
     // jQuery element extensions
     $.fn.extend({
+        /**
+         * Asegura una instancia de estado reactivo local asociada al elemento.
+         * Si ya existe, la reutiliza; si no, crea una nueva e inicializa.
+         * @param {Object} [initialState] Estado inicial local
+         * @param {Object} [options] Opciones para configurar la instancia (p.ej. { debug, batchTimeout, allowUpdaterFn })
+         * @returns {jQuery} this
+         */
+        ensureState: function(initialState = {}, options) {
+            return this.each(function() {
+                const $el = $(this);
+                let instance = $el.data('reactive-instance');
+                if (!instance) {
+                    instance = new ReactiveState();
+                    instance.init(initialState || {});
+                    if (options && typeof options === 'object') {
+                        instance.configure(options);
+                    }
+                    $el.data('reactive-instance', instance);
+                } else if (initialState && Object.keys(initialState).length > 0) {
+                    instance.setStates(initialState);
+                }
+            });
+        },
+
+        /**
+         * Obtiene/establece estado local asociado al primer elemento del set.
+         * Si no existe instancia local, la crea vacía automáticamente.
+         * Formas:
+         * - $(el).state() -> copia del estado local
+         * - $(el).state('key') -> valor local
+         * - $(el).state('key', value) -> set local
+         * - $(el).state({k1: v1, k2: v2}) -> set múltiple local
+         * @returns {*} valor para getters, jQuery para setters
+         */
+        state: function(key, value) {
+            const $first = this.eq(0);
+            let instance = $first.data('reactive-instance');
+            if (!instance) {
+                instance = new ReactiveState();
+                instance.init();
+                $first.data('reactive-instance', instance);
+            }
+
+            if (arguments.length === 0) {
+                return instance.getState();
+            }
+
+            if (typeof key === 'string' && arguments.length === 1) {
+                return instance.getState(key);
+            }
+
+            if (typeof key === 'string' && arguments.length === 2) {
+                if (typeof value === 'function' && instance.config.allowUpdaterFn !== false) {
+                    try {
+                        const prev = instance.getState(key);
+                        const next = value(prev);
+                        instance.setState(key, next);
+                    } catch (err) {
+                        console.error('[ReactiveState] Error applying local updater function for', key, err);
+                    }
+                } else {
+                    instance.setState(key, value);
+                }
+                return this;
+            }
+
+            if (typeof key === 'object') {
+                const updates = {};
+                try {
+                    Object.keys(key).forEach(function(k) {
+                        const v = key[k];
+                        if (typeof v === 'function' && instance.config.allowUpdaterFn !== false) {
+                            const prev = instance.getState(k);
+                            updates[k] = v(prev);
+                        } else {
+                            updates[k] = v;
+                        }
+                    });
+                    instance.setStates(updates);
+                } catch (err) {
+                    console.error('[ReactiveState] Error applying local batch updates', err);
+                    instance.setStates(key);
+                }
+                return this;
+            }
+
+            return this;
+        },
         /**
          * Enlaza un elemento con una clave de estado usando atributos `st-*` generados.
          * Equivalente a poner en el DOM: `<el st-<key>="<attr>">`.
@@ -659,13 +599,13 @@
          *   $.state('msg', 'Hola') // actualiza el texto del elemento
          */
         bindState: function(key, attr = 'text') {
-            const prefix = ReactiveState.config.prefix;
+            const prefix = globalState.config.prefix;
             
             return this.each(function() {
                 $(this).attr(`${prefix}${key}`, attr);
                 
                 // Render inicial
-                const value = ReactiveState.getState(key);
+                const value = globalState.getState(key);
                 if (value !== undefined) {
                     switch (attr) {
                         case 'text':
@@ -796,13 +736,13 @@
                 const $element = $(this);
                 
                 // Render inicial
-                const initialValue = ReactiveState.getState(key);
+                const initialValue = globalState.getState(key);
                 if (initialValue !== undefined) {
                     oneWayUpdater($element, initialValue);
                 }
 
                 // Suscripción a cambios del estado
-                const unsubscribe = ReactiveState.subscribe(key, (newValue) => {
+                const unsubscribe = globalState.subscribe(key, (newValue) => {
                     oneWayUpdater($element, newValue);
                 });
 
@@ -816,7 +756,7 @@
                 if (twoWayEvent) {
                     $element.on(twoWayEvent, function() {
                         const value = $element.val();
-                        ReactiveState.setState(key, value, false); // No re-renderizar el mismo elemento
+                        globalState.setState(key, value, false); // No re-renderizar el mismo elemento
                     });
                 }
             });
@@ -983,8 +923,8 @@
             };
 
             // Suscripción y render inicial
-            const unsubscribe = ReactiveState.subscribe(stateKey, renderList);
-            const initialValue = ReactiveState.getState(stateKey);
+            const unsubscribe = globalState.subscribe(stateKey, renderList);
+            const initialValue = globalState.getState(stateKey);
             
             // Guardar la función de desuscripción para limpieza
             const subscriptions = this.$el.data('reactive-subscriptions') || [];
@@ -1004,7 +944,7 @@
          * Inicializa con estado vacío por defecto.
          * Puedes llamar a `$.reactiveInit({ ... })` antes o después.
          */
-        ReactiveState.init();
+        globalState.init();
         
         /**
          * Evento personalizado para actualizaciones:
@@ -1018,22 +958,22 @@
          * Two-way binding automático para inputs con `st-value="<key>"`.
          * Permite usar solo atributos declarativos sin escribir JS extra.
          */
-        const prefix = ReactiveState.config.prefix;
+        const prefix = globalState.config.prefix;
         $(document).on('input change', `[${prefix}value]`, function() {
             const stateKey = $(this).attr(`${prefix}value`);
             if (stateKey) {
                 const newVal = $(this).val();
-                ReactiveState.setState(stateKey, newVal);
+                globalState.setState(stateKey, newVal);
             }
         });
     });
 
     // Export for module systems
     if (typeof module !== 'undefined' && module.exports) {
-        module.exports = ReactiveState;
+        module.exports = globalState;
     }
     
     // Expose ReactiveState object (útil para depurar en consola)
-    $.ReactiveState = ReactiveState;
+    $.ReactiveState = globalState;
 
 })(jQuery);

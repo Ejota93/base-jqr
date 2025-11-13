@@ -15,6 +15,7 @@ import { initRefsNS } from './refs-ns.js';
 import { initMount } from './mount.js';
 import { initComputed } from './computed.js';
 import { initAliasReactiveList } from './alias-reactive-list.js';
+import { initEnsureLocal } from './ensure-local.js';
 
 window.$ = $;
 
@@ -56,6 +57,7 @@ $(function() {
     initMount();
     initComputed();
     initAliasReactiveList();
+    initEnsureLocal();
 
     // Watchers globales
     $.watch('tareas', function(tareas) {
